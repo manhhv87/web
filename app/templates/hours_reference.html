@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+
+{% block title %}Quy đổi giờ làm việc - {{ app_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        border: none;
+        border-radius: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    .card-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        font-weight: 600;
+        padding: 14px 20px;
+        border-radius: 0 !important;
+    }
+    .card-header.bg-info {
+        background: linear-gradient(135deg, #0c3547 0%, #1cb5e0 100%) !important;
+    }
+    .ref-table th {
+        white-space: nowrap;
+    }
+    .ref-table .col-hours {
+        width: 160px;
+    }
+</style>
+<div class="row mt-4">
+    <div class="col-12">
+        <h3 class="mb-4"><i class="bi bi-table me-2"></i>Ấn phẩm khoa học</h3>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Theo Quy chế VNU-UET (Quyết định 2706/QĐ-ĐHCN ngày 21/11/2024)
+        </div>
+
+        <!-- 1. Bai bao khoa hoc -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>1. Bài báo khoa học</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Phân loại ấn phẩm khoa học</th>
+                            <th class="text-end col-hours">Số giờ quy đổi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1.1</td>
+                            <td>Tạp chí thuộc hệ thống WoS/Scopus (Q1, Q2)</td>
+                            <td class="text-end"><strong>1.800</strong></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>Tạp chí thuộc hệ thống WoS/Scopus (Q3, Q4)</td>
+                            <td class="text-end"><strong>1.400</strong></td>
+                        </tr>
+                        <tr>
+                            <td>1.2a</td>
+                            <td>
+                                Các chuyên san của Tạp chí khoa học ĐHQGHN được ĐHQGHN phê duyệt dự án đầu tư phát triển
+                                đạt chuẩn Scopus;
+                                Chuyên san công nghệ thông tin và Truyền thông của Tạp chí Khoa học ĐHQGHN (xuất bản
+                                tiếng Anh)
+                            </td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                        <tr>
+                            <td>1.2b</td>
+                            <td>
+                                Tạp chí Điện tử Truyền thông (Journal on Electronics and Communications) của Hội Vô
+                                tuyến - Điện tử Việt Nam
+                                (ISSN: 1859-378X)
+                            </td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                        <tr>
+                            <td>1.3</td>
+                            <td>
+                                Tạp chí khoa học quốc tế uy tín, ngoài hệ thống WoS/Scopus
+                            </td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                        <tr>
+                            <td>1.4</td>
+                            <td>Tạp chí khoa học chuyên ngành trong nước được Hội đồng Chức danh giáo sư Nhà nước đánh
+                                điểm và điểm tối đa</td>
+                            <td class="text-end"></td>
+                        </tr>
+                        <tr>
+                            <td>a.</td>
+                            <td class="ps-4">>= 1 điểm</td>
+                            <td class="text-end"><strong>800</strong></td>
+                        </tr>
+                        <tr>
+                            <td>b.</td>
+                            <td class="ps-4">>= 0,5 điểm</td>
+                            <td class="text-end"><strong>600</strong></td>
+                        </tr>
+                        <tr>
+                            <td>c.</td>
+                            <td class="ps-4">
+                                < 0,5 điểm</td>
+                            <td class="text-end"><strong>300</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. Bao cao khoa hoc -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>2. Báo cáo khoa học</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Phân loại ấn phẩm khoa học</th>
+                            <th class="text-end col-hours">Số giờ quy đổi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2.1</td>
+                            <td>Báo cáo khoa học được đăng toàn văn trong tuyển tập công trình khoa học tại hội nghị,
+                                hội thảo khoa học quốc tế thuộc hệ thống WoS/Scopus</td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                        <tr>
+                            <td>2.2</td>
+                            <td>Báo cáo khoa học được đăng toàn văn trong tuyển tập công trình khoa học tại hội nghị,
+                                hội thảo khoa học quốc tế viết bằng tiếng Anh, có phản biện</td>
+                            <td class="text-end"><strong>600</strong></td>
+                        </tr>
+                        <tr>
+                            <td>2.3</td>
+                            <td>Báo cáo khoa học được đăng toàn văn trong tuyển tập công trình khoa học tại hội nghị
+                                khoa học quốc gia (có chỉ số ISBN)</td>
+                            <td class="text-end"><strong>500</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. Sach, giao trinh -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>3. Sách, giáo trình</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Phân loại ấn phẩm khoa học</th>
+                            <th class="text-end col-hours">Số giờ quy đổi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>3.1</td>
+                            <td>Sách chuyên khảo được xuất bản tại nước ngoài</td>
+                            <td class="text-end"><strong>2.700</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.2</td>
+                            <td>Sách chuyên khảo xuất bản trong nước</td>
+                            <td class="text-end"><strong>1.500</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.3</td>
+                            <td>Giáo trình, sách tham khảo xuất bản tại nước ngoài</td>
+                            <td class="text-end"><strong>1.800</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.4</td>
+                            <td>Giáo trình, sách tham khảo xuất bản trong nước</td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.5</td>
+                            <td>Chương sách chuyên khảo xuất bản quốc tế có uy tín</td>
+                            <td class="text-end"><strong>1.200</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.6</td>
+                            <td>Chương sách chuyên khảo xuất bản quốc tế</td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. San pham so huu tri tue -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>4. Sản phẩm sở hữu trí tuệ, sản phẩm mỹ thuật, kiến trúc</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Phân loại ấn phẩm khoa học</th>
+                            <th class="text-end col-hours">Số giờ quy đổi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>4.1</td>
+                            <td>Bằng độc quyền sáng chế (chuẩn Patent của Mỹ hoặc Châu Âu, Đông Bắc Á,...)</td>
+                            <td class="text-end"><strong>3.000</strong></td>
+                        </tr>
+                        <tr>
+                            <td>4.2</td>
+                            <td>Bằng độc quyền sáng chế (chuẩn Patent tại Việt Nam)</td>
+                            <td class="text-end"><strong>1.800</strong></td>
+                        </tr>
+                        <tr>
+                            <td>4.3</td>
+                            <td>Bằng giải pháp hữu ích</td>
+                            <td class="text-end"><strong>1.200</strong></td>
+                        </tr>
+                        <tr>
+                            <td>4.4</td>
+                            <td>Sản phẩm KHCN/mỹ thuật/kiến trúc đạt giải thưởng</td>
+                            <td class="text-end"></td>
+                        </tr>
+                        <tr>
+                            <td>a.</td>
+                            <td class="ps-4">Giải thưởng của hiệp hội nghề nghiệp quốc tế</td>
+                            <td class="text-end"><strong>1.800</strong></td>
+                        </tr>
+                        <tr>
+                            <td>b.</td>
+                            <td class="ps-4">Giải thưởng của hiệp hội nghề nghiệp cấp quốc gia</td>
+                            <td class="text-end"><strong>1.200</strong></td>
+                        </tr>
+                        <tr>
+                            <td>4.5</td>
+                            <td>Sản phẩm mỹ thuật/kiến trúc tham gia triển lãm</td>
+                            <td class="text-end"></td>
+                        </tr>
+                        <tr>
+                            <td>a.</td>
+                            <td class="ps-4">Tham gia triển lãm do hiệp hội nghề nghiệp quốc tế tổ chức</td>
+                            <td class="text-end"><strong>900</strong></td>
+                        </tr>
+                        <tr>
+                            <td>b.</td>
+                            <td class="ps-4">Tham gia triển lãm do hiệp hội nghề nghiệp cấp quốc gia tổ chức</td>
+                            <td class="text-end"><strong>600</strong></td>
+                        </tr>
+                        <tr>
+                            <td>c.</td>
+                            <td class="ps-4">Tham gia triển lãm do hiệp hội nghề nghiệp cấp tỉnh tổ chức</td>
+                            <td class="text-end"><strong>400</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cong thuc tinh gio tac gia -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Công thức tính giờ cho mỗi tác giả</strong>
+            </div>
+            <div class="card-body">
+                <p>Việc xác định tác giả chính và đóng góp của mỗi tác giả trong các sản phẩm khoa học được thực hiện
+                    theo quy định của Hội đồng Giáo sư Nhà nước:</p>
+                <ul>
+                    <li><strong>2/3 số giờ</strong> chia đều cho tất cả tác giả</li>
+                    <li><strong>1/3 số giờ</strong> bonus cho tác giả chính:
+                        <ul>
+                            <li>Tác giả đầu (first author): +1/6</li>
+                            <li>Tác giả liên hệ (corresponding author): +1/6</li>
+                            <li>Nếu tác giả đầu đồng thời là tác giả liên hệ: +1/3</li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="alert alert-secondary">
+                    <strong>Ví dụ:</strong> Bài báo Q1 (1800 giờ), 4 tác giả, bạn là tác giả đầu:
+                    <ul class="mb-0">
+                        <li>Phân chia đều: 1800 x 2/3 / 4 = 300 giờ</li>
+                        <li>Bonus tác giả đầu: 1800 x 1/6 = 300 giờ</li>
+                        <li><strong>Tổng: 600 giờ</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- BANG 2 - HOAT DONG KHCN VA CHUYEN GIAO TRI THUC -->
+        <!-- ================================================================= -->
+
+        <hr class="my-5">
+
+        <h3 class="mb-4"><i class="bi bi-table me-2"></i>Hoạt động KHCN và chuyển giao tri thức</h3>
+
+        <!-- 1. De tai, du an cac cap -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>1. Đề tài, dự án các cấp, sản phẩm KHCN</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Phân loại hoạt động KHCN</th>
+                            <th class="text-end col-hours">Tổng giờ</th>
+                            <th class="text-end col-hours">Chủ trì</th>
+                            <th class="text-end col-hours">Thư ký khoa học</th>
+                            <th class="text-end col-hours">Tổng các thành viên khác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1.1</td>
+                            <td>Đề tài, dự án cấp Nhà nước và tương đương</td>
+                            <td class="text-end"><strong>1.000</strong></td>
+                            <td class="text-end">500</td>
+                            <td class="text-end">250</td>
+                            <td class="text-end">250</td>
+                        </tr>
+                        <tr>
+                            <td>1.2</td>
+                            <td>Đề tài, dự án cấp ĐHQGHN, cấp Bộ và tương đương</td>
+                            <td class="text-end"><strong>800</strong></td>
+                            <td class="text-end">400</td>
+                            <td class="text-end">200</td>
+                            <td class="text-end">200</td>
+                        </tr>
+                        <tr>
+                            <td>1.3</td>
+                            <td>Đề tài, dự án cấp Trường hoặc tương đương</td>
+                            <td class="text-end"><strong>300</strong></td>
+                            <td class="text-end">300</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. De tai hop tac, dich vu KHCN -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>2. Đề tài, dự án hợp tác, dịch vụ khoa học công nghệ và chuyển giao tri thức</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Công thức tính giờ</th>
+                            <th class="text-end col-hours">Chủ trì</th>
+                            <th class="text-end col-hours">Thư ký khoa học</th>
+                            <th class="text-end col-hours">Tổng các thành viên khác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <code>100 + 1000 * (giá trị tài trợ tính theo tỷ đồng) / số năm thực hiện</code>
+                            </td>
+                            <td class="text-end">50%</td>
+                            <td class="text-end">25%</td>
+                            <td class="text-end">25%</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-secondary mt-3 mb-0">
+                    <strong>Ví dụ:</strong> Đề tài hợp tác với doanh nghiệp, giá trị 2 tỷ đồng, thực hiện trong 2 năm:
+                    <ul class="mb-0">
+                        <li>Tổng giờ = 100 + 1000 * 2 / 2 = <strong>1.100 giờ</strong></li>
+                        <li>Chủ trì: 1.100 * 50% = <strong>550 giờ</strong></li>
+                        <li>Thư ký: 1.100 * 25% = <strong>275 giờ</strong></li>
+                        <li>Tổng các thành viên khác: 1.100 * 25% = <strong>275 giờ</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Hoat dong KHCN khac -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>3. Hoạt động khoa học và công nghệ khác</strong>
+                <span class="badge bg-warning text-dark ms-2">Tối đa 250 giờ/năm</span>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered ref-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Phân loại hoạt động</th>
+                            <th class="text-end col-hours">Số giờ quy đổi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>3.1</td>
+                            <td>Hướng dẫn nhóm sinh viên tham gia hội nghị SV NCKH</td>
+                            <td class="text-end"></td>
+                        </tr>
+                        <tr>
+                            <td>a.</td>
+                            <td class="ps-4">Cấp trường trở lên</td>
+                            <td class="text-end"><strong>75 giờ/nhóm</strong></td>
+                        </tr>
+                        <tr>
+                            <td>b.</td>
+                            <td class="ps-4">Cấp khoa</td>
+                            <td class="text-end"><strong>30 giờ/nhóm</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.2</td>
+                            <td>Hướng dẫn, huấn luyện các đội tuyển sinh viên tham dự các cuộc thi NCKH, sáng tạo khởi
+                                nghiệp</td>
+                            <td class="text-end"><strong>75 giờ/đội tuyển</strong></td>
+                        </tr>
+                        <tr>
+                            <td>3.3</td>
+                            <td>Sản phẩm khoa học công nghệ tham gia các hội chợ, triển lãm KHCN, cuộc thi KHCN</td>
+                            <td class="text-end"><strong>45 giờ/sản phẩm</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Ghi chú chung -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <strong><i class="bi bi-info-circle me-2"></i>Các lưu ý quan trọng</strong>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li class="mb-2"><strong>Đề tài gia hạn:</strong> Các đề tài, dự án KHCN trong thời gian gia hạn thì
+                        <strong>không được quy đổi</strong> sang giờ NCKH.
+                    </li>
+                    <li class="mb-2"><strong>Việc xác định tác giả chính:</strong> Thực hiện theo quy định của Hội đồng
+                        Giáo sư Nhà
+                        nước.</li>
+
+                    <li class="mb-2"><strong>Tạp chí của các NXB uy tín:</strong> Elsevier, Springer, Wiley-Blackwell,
+                        Taylor&Francis, Sage, Oxford University Press, Cambridge University Press, Emerald, Macmillan
+                        Publishers, Inderscience Publishers, Edward Elgar Publishing và các NXB uy tín tương đương khác;
+                        hoặc các NXB của 100 trường đại học hàng đầu thế giới do tạp chí Times Higher Education (Anh)
+                        hợp tác với Thomson Reuters bình chọn hàng năm
+                        (<a href="https://www.timeshighereducation.com" target="_blank" rel="noopener noreferrer">
+                            https://www.timeshighereducation.com
+                        </a>).
+                    </li>
+
+                    <li class="mb-2"><strong>Sách tái bản/biên dịch:</strong> Được quy đổi nhưng không vượt quá
+                        <strong>1/3 tổng số
+                            giờ</strong> của bản phẩm mới.
+                    </li>
+                    <li class="mb-2">
+                        <strong class="d-block mb-2">Bằng sáng chế và giải pháp hữu ích:</strong>
+                        <ul class="mb-0">
+                            <li class="mb-1">Giai đoạn 1 (Đơn được chấp nhận): Được tính <strong>1/3 tổng số
+                                    giờ</strong></li>
+                            <li class="mb-2">Giai đoạn 2 (Được cấp bằng): Được tính <strong>2/3 tổng số giờ</strong>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="mb-2"><strong>Hoạt động KHCN khác:</strong> Tối đa là <strong>250 giờ/năm</strong> cho
+                        mỗi cán bộ.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

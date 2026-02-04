@@ -1,0 +1,155 @@
+{#
+  Macro hiển thị tiến trình duyệt 3 cấp cho user.
+
+  Sử dụng:
+    {% from "_approval_progress.html" import approval_badge, approval_steps %}
+
+    Trong bảng (compact):  {{ approval_badge(item) }}
+    Trong trang chi tiết:  {{ approval_steps(item) }}
+#}
+
+{# ── Helper: tên cấp admin ── #}
+{% macro _level_name(level) %}
+{%- if level == 'department' -%}Bộ môn
+{%- elif level == 'faculty' -%}Khoa
+{%- elif level == 'university' -%}Trường
+{%- else -%}Admin
+{%- endif -%}
+{% endmacro %}
+
+{# ── Badge compact cho bảng danh sách ── #}
+{% macro approval_badge(item) %}
+{% set s = item.approval_status %}
+{% if s == 'approved' %}
+<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Đã phê duyệt</span>
+{% elif s == 'returned' %}
+<span class="badge bg-danger" data-bs-toggle="tooltip"
+      title="{{ _level_name(item.returned_by_level) }} trả lại: {{ item.rejection_reason or 'Không có lý do' }}">
+    <i class="bi bi-exclamation-circle me-1"></i>{{ _level_name(item.returned_by_level) }} trả lại
+</span>
+{% elif s == 'faculty_approved' %}
+<span class="badge bg-primary"><i class="bi bi-check2-circle me-1"></i>Khoa đã duyệt</span>
+<br><small class="text-muted">Chờ Trường phê duyệt</small>
+{% elif s == 'department_approved' %}
+<span class="badge bg-info text-dark"><i class="bi bi-check2-circle me-1"></i>Bộ môn đã xác nhận</span>
+<br><small class="text-muted">Chờ Khoa duyệt</small>
+{% elif s == 'draft' %}
+<span class="badge bg-secondary"><i class="bi bi-file-earmark me-1"></i>Nháp</span>
+{% else %}
+<span class="badge bg-warning text-dark">Chờ Bộ môn xác nhận</span>
+{% endif %}
+{% endmacro %}
+
+
+{# ── Badge nhỏ gọn cho dashboard ── #}
+{% macro approval_badge_sm(item) %}
+{% set s = item.approval_status %}
+{% if s == 'approved' %}
+<span class="badge bg-success ms-1">Đã phê duyệt</span>
+{% elif s == 'returned' %}
+<span class="badge bg-danger ms-1">{{ _level_name(item.returned_by_level) }} trả lại</span>
+{% elif s == 'faculty_approved' %}
+<span class="badge bg-primary ms-1">Khoa đã duyệt</span>
+{% elif s == 'department_approved' %}
+<span class="badge bg-info text-dark ms-1">BM xác nhận</span>
+{% elif s == 'draft' %}
+<span class="badge bg-secondary ms-1">Nháp</span>
+{% else %}
+<span class="badge bg-warning text-dark ms-1">Chờ duyệt</span>
+{% endif %}
+{% endmacro %}
+
+
+{# ── Thanh tiến trình 3 bước cho trang chi tiết ── #}
+{% macro approval_steps(item) %}
+{% set s = item.approval_status %}
+
+{# Xác định bước hiện tại: 0=pending, 1=dept, 2=faculty, 3=approved, -1=returned, -2=draft #}
+{% if s == 'approved' %}{% set step = 3 %}
+{% elif s == 'faculty_approved' %}{% set step = 2 %}
+{% elif s == 'department_approved' %}{% set step = 1 %}
+{% elif s == 'returned' %}{% set step = -1 %}
+{% elif s == 'draft' %}{% set step = -2 %}
+{% else %}{% set step = 0 %}
+{% endif %}
+
+{% if step == -2 %}
+{# Nháp #}
+<div class="alert alert-secondary mb-0 py-2">
+    <i class="bi bi-file-earmark me-2"></i><strong>Nháp</strong> — Chưa gửi duyệt.
+</div>
+{% elif step == -1 %}
+{# Trả lại #}
+<div class="alert alert-danger mb-0 py-2">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <strong>{{ _level_name(item.returned_by_level) }} đã trả lại</strong>
+    {% if item.rejection_reason %}
+    <div class="mt-1"><i class="bi bi-chat-left-text me-1"></i>Lý do: {{ item.rejection_reason }}</div>
+    {% endif %}
+    {% if item.returned_at %}
+    <div class="mt-1"><small class="text-muted">
+        <i class="bi bi-clock me-1"></i>{{ item.returned_at.strftime('%d/%m/%Y %H:%M') }}
+    </small></div>
+    {% endif %}
+    <div class="mt-2 text-muted" style="font-size: .85rem;">
+        <i class="bi bi-info-circle me-1"></i>Vui lòng chỉnh sửa và gửi lại. Quy trình duyệt sẽ bắt đầu lại từ đầu.
+    </div>
+</div>
+{% else %}
+{# Tiến trình 3 bước #}
+<div class="d-flex align-items-center gap-0 flex-wrap" style="font-size: .85rem;">
+    {# Bước 1: Bộ môn #}
+    {% if step >= 1 %}
+    <span class="badge bg-success rounded-pill px-2 py-1">
+        <i class="bi bi-check-lg me-1"></i>Bộ môn
+    </span>
+    {% elif step == 0 %}
+    <span class="badge bg-warning text-dark rounded-pill px-2 py-1 border border-warning">
+        <i class="bi bi-hourglass-split me-1"></i>Bộ môn
+    </span>
+    {% endif %}
+
+    <i class="bi bi-chevron-right text-muted mx-1"></i>
+
+    {# Bước 2: Khoa #}
+    {% if step >= 2 %}
+    <span class="badge bg-success rounded-pill px-2 py-1">
+        <i class="bi bi-check-lg me-1"></i>Khoa
+    </span>
+    {% elif step == 1 %}
+    <span class="badge bg-warning text-dark rounded-pill px-2 py-1 border border-warning">
+        <i class="bi bi-hourglass-split me-1"></i>Khoa
+    </span>
+    {% else %}
+    <span class="badge bg-light text-muted rounded-pill px-2 py-1 border">
+        Khoa
+    </span>
+    {% endif %}
+
+    <i class="bi bi-chevron-right text-muted mx-1"></i>
+
+    {# Bước 3: Trường #}
+    {% if step >= 3 %}
+    <span class="badge bg-success rounded-pill px-2 py-1">
+        <i class="bi bi-check-lg me-1"></i>Trường
+    </span>
+    {% elif step == 2 %}
+    <span class="badge bg-warning text-dark rounded-pill px-2 py-1 border border-warning">
+        <i class="bi bi-hourglass-split me-1"></i>Trường
+    </span>
+    {% else %}
+    <span class="badge bg-light text-muted rounded-pill px-2 py-1 border">
+        Trường
+    </span>
+    {% endif %}
+</div>
+{% if step == 3 %}
+<small class="text-success mt-1 d-block">
+    <i class="bi bi-check-circle-fill me-1"></i>Đã phê duyệt hoàn tất
+    {% if item.approved_at %}
+    ({{ item.approved_at.strftime('%d/%m/%Y') }})
+    {% endif %}
+</small>
+{% endif %}
+{% endif %}
+{% endmacro %}

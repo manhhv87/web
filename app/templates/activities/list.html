@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% from "_approval_progress.html" import approval_badge %}
+
+{% block title %}Hoạt động KHCN khác - {{ app_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .act-table thead th {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 12px 14px;
+        border: none;
+        white-space: nowrap;
+    }
+</style>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>
+                <i class="bi bi-activity me-2"></i>Hoạt động KHCN khác
+                <small class="text-muted fs-6 ms-2">(Tối đa {{ max_hours_per_year|int }} giờ/năm)</small>
+            </h3>
+            <a href="{{ url_for('activities.add_activity') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Thêm hoạt động
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-5">
+                        <label class="form-label">Loại hoạt động</label>
+                        <select name="type" class="form-select">
+                            <option value="">Tất cả</option>
+                            {% for val, label in type_choices %}
+                            <option value="{{ val }}" {% if selected_type==val %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            <option value="">Tất cả</option>
+                            <option value="approved" {% if selected_status=='approved' %}selected{% endif %}>Đã duyệt</option>
+                            <option value="pending" {% if selected_status=='pending' %}selected{% endif %}>Chờ duyệt</option>
+                            <option value="returned" {% if selected_status=='returned' %}selected{% endif %}>Trả lại</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Năm</label>
+                        <select name="year" class="form-select">
+                            <option value="">Tất cả</option>
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-3">
+                        <div class="d-flex gap-2 justify-content-lg-end">
+                            <button type="submit" class="btn btn-primary flex-grow-1 flex-lg-grow-0">
+                                <i class="bi bi-funnel"></i> Lọc
+                            </button>
+                            <a href="{{ url_for('activities.list_activities') }}" class="btn btn-outline-secondary flex-grow-1 flex-lg-grow-0">
+                                Xóa bộ lọc
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thông báo hoạt động bị trả lại -->
+{% set returned_activities = activities|selectattr('approval_status', 'equalto', 'returned')|list %}
+{% if returned_activities %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-danger">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Có {{ returned_activities|length }} hoạt động bị trả lại</h5>
+            <p class="mb-2">Các hoạt động sau cần được chỉnh sửa theo yêu cầu của Admin:</p>
+            <ul class="mb-0">
+                {% for act in returned_activities %}
+                <li>
+                    <strong>{{ act.title[:50] }}{% if act.title|length > 50 %}...{% endif %}</strong>
+                    {% if act.rejection_reason %}
+                    <br><small class="text-danger"><i class="bi bi-arrow-return-right me-1"></i>Lý do: {{ act.rejection_reason }}</small>
+                    {% endif %}
+                    <a href="{{ url_for('activities.edit_activity', act_id=act.id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="bi bi-pencil me-1"></i>Sửa
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Danh sách hoạt động -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if activities %}
+                <div class="table-responsive">
+                    <table class="table table-hover act-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">Năm</th>
+                                <th>Hoạt động</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-end">Giờ</th>
+                                <th>Duyệt</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for act in activities %}
+                            <tr>
+                                <td><strong>{{ act.year }}</strong></td>
+                                <td>
+                                    <a href="{{ url_for('activities.view_activity', act_id=act.id) }}">
+                                        {{ act.title[:70] }}{% if act.title|length > 70 %}...{% endif %}
+                                    </a>
+                                    <small class="text-muted ms-2">{{ act.activity_type_display }}</small>
+                                    {% if act.achievement %}
+                                    <small class="text-success ms-2"><i class="bi bi-award me-1"></i>{{ act.achievement }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {{ act.quantity }}
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ "%.1f"|format(act.hours) }}</strong>
+                                </td>
+                                <td>{{ approval_badge(act) }}</td>
+                                <td class="text-end">
+                                    {% if act.can_edit %}
+                                    <a href="{{ url_for('activities.edit_activity', act_id=act.id) }}"
+                                        class="btn btn-sm btn-outline-primary" title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('activities.delete_activity', act_id=act.id) }}"
+                                        method="post" class="d-inline"
+                                        onsubmit="return confirm('Bạn có chắc muốn xóa hoạt động này?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <a href="{{ url_for('activities.view_activity', act_id=act.id) }}"
+                                        class="btn btn-sm btn-outline-secondary" title="Xem">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="3" class="text-end"><strong>Tổng cộng:</strong></td>
+                                <td class="text-end">
+                                    <strong>{{ "%.1f"|format(activities|sum(attribute='hours')) }}</strong>
+                                </td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center my-4">
+                    Chưa có hoạt động nào.
+                    <a href="{{ url_for('activities.add_activity') }}">Thêm hoạt động đầu tiên</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

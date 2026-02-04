@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'add' %}Thêm người dùng{% else %}Sửa người dùng{% endif %} - {{ app_name }}{% endblock
+%}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.list_users') }}">Người dùng</a></li>
+                <li class="breadcrumb-item active">{% if action == 'add' %}Thêm mới{% else %}Sửa{% endif %}</li>
+            </ol>
+        </nav>
+        <h2>
+            <i class="bi bi-person-{% if action == 'add' %}plus{% else %}gear{% endif %} me-2"></i>
+            {% if action == 'add' %}Thêm người dùng mới{% else %}Sửa thông tin người dùng{% endif %}
+        </h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                {# Kiểm tra Admin Trường đang sửa chính mình #}
+                {% set is_editing_self_as_university_admin = action == 'edit' and user and user.id == current_user.id and user.highest_admin_level == 'university' %}
+                {% set effective_level = effective_level if effective_level is defined else current_user.highest_admin_level %}
+
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        {% if action == 'add' %}
+                        <input type="email" name="email" class="form-control" required placeholder="email@example.com"
+                               value="{{ user.email if user else '' }}">
+                        {% else %}
+                        <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                        <small class="text-muted">Email không thể thay đổi</small>
+                        {% endif %}
+                    </div>
+
+                    {% if action == 'add' %}
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required minlength="6"
+                            placeholder="Ít nhất 6 ký tự">
+                    </div>
+                    {% else %}
+                    {# Khi sửa: hiển thị nút đổi mật khẩu thay vì input trực tiếp #}
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="password" class="form-control" value="********" disabled>
+                            <button type="button" class="btn btn-outline-warning btn-sm"
+                                    data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                <i class="bi bi-key me-1"></i>Đổi
+                            </button>
+                        </div>
+                        <div class="form-text">Nhấn "Đổi" để đặt mật khẩu mới cho người dùng</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Họ tên {% if not is_editing_self_as_university_admin %}<span class="text-danger">*</span>{% endif %}</label>
+                        {% if is_editing_self_as_university_admin %}
+                        <input type="text" class="form-control" value="{{ user.full_name }}" disabled>
+                        <small class="text-muted">Thông tin Admin Trường không thể tự thay đổi</small>
+                        {% else %}
+                        <input type="text" name="full_name" class="form-control" required
+                            value="{{ user.full_name if user else '' }}" placeholder="Nguyễn Văn A">
+                        {% endif %}
+                    </div>
+
+                    {# Ẩn Khoa/Phòng ban và Mã cán bộ khi Admin Trường sửa chính mình #}
+                    {% if not is_editing_self_as_university_admin %}
+                    <!-- Khoa/Phòng ban -->
+                    {# Admin Trường không bắt buộc có Khoa/Phòng ban #}
+                    {% set is_university_admin = user and user.highest_admin_level == 'university' %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Khoa/Phòng ban
+                            {% if not is_university_admin %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <select name="organization_unit_id" id="organizationUnitSelect" class="form-select"
+                                {% if not is_university_admin %}required{% endif %}>
+                            <option value="">-- {% if is_university_admin %}Không thuộc đơn vị cụ thể{% else %}Chọn Khoa/Phòng ban{% endif %} --</option>
+                            {% if org_units %}
+                                <optgroup label="Khoa">
+                                    {% for unit in org_units if unit.unit_type == 'faculty' %}
+                                    <option value="{{ unit.id }}"
+                                            data-unit-type="{{ unit.unit_type.value if unit.unit_type else "" }}"
+                                            data-requires-division="{{ 'true' if unit.requires_division else 'false' }}"
+                                            {% if user and user.organization_unit_id == unit.id %}selected{% endif %}>
+                                        {{ unit.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="Phòng ban">
+                                    {% for unit in org_units if unit.unit_type == 'office' %}
+                                    <option value="{{ unit.id }}"
+                                            data-unit-type="{{ unit.unit_type.value if unit.unit_type else "" }}"
+                                            data-requires-division="false"
+                                            {% if user and user.organization_unit_id == unit.id %}selected{% endif %}>
+                                        {{ unit.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endif %}
+                        </select>
+                        <div class="form-text">
+                            {% if is_university_admin %}
+                            Admin Trường quản lý toàn trường, không bắt buộc thuộc đơn vị cụ thể
+                            {% else %}
+                            Chọn Khoa hoặc Phòng ban cho người dùng
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Bộ môn (chỉ hiển thị khi chọn Khoa) -->
+                    <div class="mb-3" id="divisionField" style="display: none;">
+                        <label class="form-label">Bộ môn <span class="text-danger" id="divisionRequired">*</span></label>
+                        <div class="d-flex align-items-center gap-2">
+                            <select name="division_id" id="divisionSelect" class="form-select">
+                                <option value="">-- Chọn Bộ môn --</option>
+                            </select>
+                            <div id="divisionSpinner" class="spinner-border text-secondary" role="status" style="width:1.25rem; height:1.25rem; display:none;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="form-text">Bộ môn bắt buộc đối với Khoa, không bắt buộc đối với Phòng ban</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mã cán bộ</label>
+                        <input type="text" name="employee_id" class="form-control"
+                            value="{{ user.employee_id if user and user.employee_id else '' }}"
+                            placeholder="Mã số cán bộ">
+                    </div>
+                    {% endif %}
+
+                    {% if current_user.is_admin %}
+                    <div class="alert alert-info py-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Quyền admin được quản lý tại mục <strong>Quản lý Admin</strong>.
+                    </div>
+                    {% endif %}
+
+                    <hr>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {% if action == 'add' %}Tạo người dùng{% else %}Lưu thay đổi{% endif %}
+                        </button>
+                        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Hướng dẫn</div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Email là tài khoản đăng nhập, không thể thay đổi sau khi tạo</li>
+                    <li>Mật khẩu phải có ít nhất 6 ký tự</li>
+                </ul>
+                <hr>
+                <h6>Hệ thống phân quyền 3 cấp:</h6>
+                <ul class="mb-0 small">
+                    <li><strong>Admin Trường (PKHCN)</strong>: Quản lý toàn trường, phê duyệt cuối cùng</li>
+                    <li><strong>Admin Khoa</strong>: Quản lý trong Khoa, duyệt sau Bộ môn xác nhận</li>
+                    <li><strong>Admin Bộ môn</strong>: Quản lý trong Bộ môn, xác nhận ban đầu</li>
+                    <li><strong>User thường</strong>: Chỉ quản lý dữ liệu của mình</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if action == 'edit' and user %}
+<!-- Modal đổi mật khẩu -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-key me-2"></i>Đổi mật khẩu cho {{ user.full_name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.reset_user_password', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Mật khẩu mới sẽ được áp dụng ngay lập tức. Người dùng sẽ cần sử dụng mật khẩu mới để đăng nhập.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" name="new_password" class="form-control" required minlength="6"
+                               placeholder="Ít nhất 6 ký tự">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="confirm_password" class="form-control" required minlength="6"
+                               placeholder="Nhập lại mật khẩu mới">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-check-lg me-1"></i>Đổi mật khẩu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const orgUnitSelect = document.getElementById('organizationUnitSelect');
+    const divisionField = document.getElementById('divisionField');
+    const divisionSelect = document.getElementById('divisionSelect');
+    const divisionRequired = document.getElementById('divisionRequired');
+    const allowedDivisionIds = {{ allowed_division_ids|default([])|tojson }};
+
+    function autoSelectSingleOption(selectEl) {
+        if (!selectEl) return;
+        const options = Array.from(selectEl.options).filter(opt => opt.value !== '');
+        if (options.length === 1) {
+            selectEl.value = options[0].value;
+        }
+    }
+
+    async function loadDivisions(orgUnitId) {
+        if (!orgUnitId) {
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+            return;
+        }
+        // show spinner and disable submit while loading
+        const divisionSpinner = document.getElementById('divisionSpinner');
+        const submitBtn = document.querySelector('form button[type="submit"]');
+        divisionSpinner.style.display = 'inline-block';
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/organization-units/${orgUnitId}/divisions`);
+            let divisions = await response.json();
+            if (allowedDivisionIds.length > 0) {
+                const allowedSet = new Set(allowedDivisionIds.map(String));
+                divisions = divisions.filter(div => allowedSet.has(String(div.id)));
+            }
+
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+            divisions.forEach(div => {
+                const option = document.createElement('option');
+                option.value = div.id;
+                option.textContent = div.name;
+                {% if user and user.division_id %}
+                if (div.id === {{ user.division_id }}) {
+                    option.selected = true;
+                }
+                {% endif %}
+                divisionSelect.appendChild(option);
+            });
+            autoSelectSingleOption(divisionSelect);
+        } catch (error) {
+            console.error('Error loading divisions:', error);
+        } finally {
+            divisionSpinner.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    function updateDivisionField() {
+        const selectedOption = orgUnitSelect.options[orgUnitSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            divisionField.style.display = 'none';
+            divisionSelect.required = false;
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+            return;
+        }
+
+        const unitType = (selectedOption.getAttribute('data-unit-type') || '').toLowerCase();
+        const requiresDivision = selectedOption.getAttribute('data-requires-division') === 'true';
+
+        if (requiresDivision || unitType === 'faculty' || unitType.endsWith('.faculty')) {
+            divisionField.style.display = 'block';
+            divisionSelect.required = true;
+            divisionRequired.style.display = 'inline';
+            loadDivisions(selectedOption.value);
+        } else {
+            divisionField.style.display = 'none';
+            divisionSelect.required = false;
+            divisionRequired.style.display = 'none';
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+        }
+    }
+
+    orgUnitSelect.addEventListener('change', updateDivisionField);
+
+    // Khởi tạo ban đầu nếu đã có giá trị
+    autoSelectSingleOption(orgUnitSelect);
+    updateDivisionField();
+});
+</script>
+{% endblock %}

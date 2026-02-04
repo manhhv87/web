@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+
+{% block title %}Báo cáo tổng hợp - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item active">Báo cáo tổng hợp</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-bar-chart-fill me-2"></i>Báo cáo tổng hợp giờ nghiên cứu</h2>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mt-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            {% if admin_level == 'faculty' %}
+            <input type="hidden" name="org_unit_id" value="{{ selected_org_unit_id or (org_units[0].id if org_units else '') }}">
+            <div class="col-lg-4 col-md-4">
+                <label class="form-label">Bộ môn</label>
+                <select name="division_id" id="divisionFilter" class="form-select">
+                    <option value="">-- Tất cả bộ môn --</option>
+                    {% for div in divisions %}
+                    <option value="{{ div.id }}"
+                        data-org-unit-id="{{ div.organization_unit_id }}"
+                        {% if selected_division_id==div.id %}selected{% endif %}>
+                        {{ div.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-7 col-md-6">
+                <label class="form-label">Người dùng</label>
+                <select name="user_id" id="userFilter" class="form-select">
+                    <option value="">-- Tất cả người dùng --</option>
+                    {% for u in scoped_users %}
+                    <option value="{{ u.id }}"
+                        data-org-unit="{{ u.organization_unit_id or '' }}"
+                        data-division="{{ u.division_id or '' }}"
+                        {% if selected_user_id==u.id %}selected{% endif %}>
+                        {{ u.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-3">
+                <label class="form-label">Năm</label>
+                <select name="year" class="form-select">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elif admin_level == 'department' %}
+            <input type="hidden" name="org_unit_id" value="{{ selected_org_unit_id or (org_units[0].id if org_units else '') }}">
+            <input type="hidden" name="division_id" value="{{ selected_division_id or (divisions[0].id if divisions else '') }}">
+            <div class="col-12">
+                <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-end">
+                    <div class="flex-grow-1">
+                        <label class="form-label">Người dùng</label>
+                        <select name="user_id" id="userFilter" class="form-select">
+                            <option value="">-- Tất cả người dùng --</option>
+                            {% for u in scoped_users %}
+                            <option value="{{ u.id }}"
+                                data-org-unit="{{ u.organization_unit_id or '' }}"
+                                data-division="{{ u.division_id or '' }}"
+                                {% if selected_user_id==u.id %}selected{% endif %}>
+                                {{ u.full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="min-width: 160px;">
+                        <label class="form-label">Năm</label>
+                        <select name="year" class="form-select">
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-grid" style="min-width: 200px;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i>Xem báo cáo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label">Năm</label>
+                <select name="year" class="form-select">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-4">
+                <label class="form-label">Khoa/Phòng ban</label>
+                <select name="org_unit_id" id="orgUnitFilter" class="form-select">
+                    {% if admin_level == 'university' %}
+                    <option value="">-- Toàn trường --</option>
+                    {% endif %}
+                    {% for ou in org_units %}
+                    <option value="{{ ou.id }}"
+                        {% if selected_org_unit_id==ou.id or (admin_level != 'university' and not selected_org_unit_id and loop.first) %}
+                        selected
+                        {% endif %}>
+                        {{ ou.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-4">
+                <label class="form-label">Bộ môn</label>
+                <select name="division_id" id="divisionFilter" class="form-select">
+                    <option value="">-- Tất cả bộ môn --</option>
+                    {% for div in divisions %}
+                    <option value="{{ div.id }}"
+                        data-org-unit-id="{{ div.organization_unit_id }}"
+                        {% if selected_division_id==div.id %}selected{% endif %}>
+                        {% if admin_level == 'university' %}
+                        {{ div.full_name }}
+                        {% else %}
+                        {{ div.name }}
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label">Người dùng</label>
+                <select name="user_id" id="userFilter" class="form-select">
+                    <option value="">-- Tất cả người dùng --</option>
+                    {% for u in scoped_users %}
+                    <option value="{{ u.id }}"
+                        data-org-unit="{{ u.organization_unit_id or '' }}"
+                        data-division="{{ u.division_id or '' }}"
+                        {% if selected_user_id==u.id %}selected{% endif %}>
+                        {{ u.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if admin_level != 'department' %}
+            <div class="col-lg-2 col-md-12 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Xem báo cáo
+                </button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row mt-4">
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center py-3">
+                <h3 class="mb-0">{{ faculty_total.user_count }}</h3>
+                <small>Giảng viên</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center py-3">
+                <h3 class="mb-0">{{ faculty_total.pub_count }}</h3>
+                <small>Ấn phẩm</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body text-center py-3">
+                <h3 class="mb-0">{{ faculty_total.project_count }}</h3>
+                <small>Đề tài</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body text-center py-3">
+                <h3 class="mb-0">{{ faculty_total.activity_count }}</h3>
+                <small>HĐ KHCN khác</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Statistics by Type (Compact) -->
+{% if selected_user_name %}
+{% set stats_data = report_data[0] if report_data else None %}
+{% set stats_title = selected_user_name %}
+{% elif selected_division_name and department_totals.get(selected_division_name) %}
+{% set stats_data = department_totals[selected_division_name] %}
+{% set stats_title = selected_division_name %}
+{% else %}
+{% set stats_data = faculty_total %}
+{% set stats_title = scope_title %}
+{% endif %}
+
+<div class="row mt-3 g-2">
+    <!-- Publications by Type -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white py-2">
+                <small><i class="bi bi-journal-richtext me-1"></i>Ấn phẩm - {{ stats_title }}</small>
+            </div>
+            <ul class="list-group list-group-flush small">
+                {% if stats_data %}
+                {% for ptype, label in pub_type_choices %}
+                {% if stats_data.pub_by_type.get(ptype) %}
+                <li class="list-group-item py-1 d-flex justify-content-between">
+                    <span class="text-truncate" style="max-width: 200px;">{{ label }}</span>
+                    <strong>{{ stats_data.pub_by_type[ptype].count }}</strong>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </ul>
+            <div class="card-footer bg-success bg-opacity-10 py-1 d-flex justify-content-between">
+                <strong class="text-success">Tổng</strong>
+                <strong class="text-success">{{ stats_data.pub_count if stats_data else 0 }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects by Level -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white py-2">
+                <small><i class="bi bi-folder2-open me-1"></i>Đề tài - {{ stats_title }}</small>
+            </div>
+            <ul class="list-group list-group-flush small">
+                {% if stats_data %}
+                {% for plevel, label in project_level_choices %}
+                {% if stats_data.project_by_level.get(plevel) %}
+                <li class="list-group-item py-1 d-flex justify-content-between">
+                    <span class="text-truncate" style="max-width: 200px;">{{ label }}</span>
+                    <strong>{{ stats_data.project_by_level[plevel].count }}</strong>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </ul>
+            <div class="card-footer bg-info bg-opacity-10 py-1 d-flex justify-content-between">
+                <strong class="text-info">Tổng</strong>
+                <strong class="text-info">{{ stats_data.project_count if stats_data else 0 }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activities by Type -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-warning py-2">
+                <small><i class="bi bi-lightning me-1"></i>HĐ KHCN khác - {{ stats_title }}</small>
+            </div>
+            <ul class="list-group list-group-flush small">
+                {% if stats_data %}
+                {% for atype, label in activity_type_choices %}
+                {% if stats_data.activity_by_type.get(atype) %}
+                <li class="list-group-item py-1 d-flex justify-content-between">
+                    <span class="text-truncate" style="max-width: 200px;">{{ label }}</span>
+                    <strong>{{ stats_data.activity_by_type[atype].quantity }}</strong>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </ul>
+            <div class="card-footer bg-warning bg-opacity-25 py-1 d-flex justify-content-between">
+                <strong class="text-dark">Tổng</strong>
+                <strong class="text-dark">{{ stats_data.activity_count if stats_data else 0 }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Department Summary Table -->
+{% if department_totals|length > 1 %}
+<div class="card mt-4">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-building me-2"></i>Tổng hợp theo Bộ môn - {{ scope_title }} - Năm {{ selected_year }}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-dark">Bộ môn</th>
+                        <th class="text-center text-dark">Số GV</th>
+                        <th class="text-center text-dark" title="Bài báo/Hội nghị WoS/Scopus">WoS/Scopus</th>
+                        <th class="text-center text-dark" title="Tạp chí/Hội nghị quốc tế (ngoài WoS/Scopus)">Quốc tế</th>
+                        <th class="text-center text-dark" title="Tạp chí/Hội nghị trong nước">Trong nước</th>
+                        <th class="text-center text-dark" title="Sách, giáo trình, chương sách">Sách</th>
+                        <th class="text-center text-dark" title="Sở hữu trí tuệ, giải thưởng, triển lãm">SHTT</th>
+                        <th class="text-center text-dark">Đề tài</th>
+                        <th class="text-center text-dark">HĐ khác</th>
+                        <th class="text-end text-dark">Tổng giờ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept, data in department_totals.items() %}
+                    <tr>
+                        <td>
+                            {% set div_id = division_id_by_name.get(dept) %}
+                            {% if div_id %}
+                            <a href="{{ url_for('admin.reports', year=selected_year, org_unit_id=selected_org_unit_id, division_id=div_id) }}">
+                                {{ dept }}
+                            </a>
+                            {% else %}
+                            {{ dept }}
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ data.user_count }}</td>
+                        <td class="text-center">
+                            {% if data.pub_groups.wos_scopus > 0 %}<span class="badge bg-success">{{ data.pub_groups.wos_scopus }}</span>{% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if data.pub_groups.international > 0 %}<span class="badge bg-primary">{{ data.pub_groups.international }}</span>{% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if data.pub_groups.domestic > 0 %}<span class="badge bg-info">{{ data.pub_groups.domestic }}</span>{% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if data.pub_groups.book > 0 %}<span class="badge bg-warning text-dark">{{ data.pub_groups.book }}</span>{% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if data.pub_groups.ip_award > 0 %}<span class="badge bg-secondary">{{ data.pub_groups.ip_award }}</span>{% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">{{ data.project_count }}</td>
+                        <td class="text-center">{{ data.activity_count }}</td>
+                        <td class="text-end fw-bold">{{ "%.0f"|format(data.total_hours) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-primary">
+                    <tr>
+                        <th class="text-dark">TỔNG CỘNG</th>
+                        <th class="text-center text-dark">{{ faculty_total.user_count }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.pub_groups.wos_scopus }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.pub_groups.international }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.pub_groups.domestic }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.pub_groups.book }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.pub_groups.ip_award }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.project_count }}</th>
+                        <th class="text-center text-dark">{{ faculty_total.activity_count }}</th>
+                        <th class="text-end text-dark">{{ "%.0f"|format(faculty_total.total_hours) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Individual Report Table -->
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="bi bi-person-lines-fill me-2"></i>Chi tiết theo cá nhân - Năm {{ selected_year }}
+        {% if selected_user_name %}
+        <span class="badge bg-info ms-2">{{ selected_user_name }}</span>
+        {% elif selected_division_name %}
+        <span class="badge bg-info ms-2">{{ selected_division_name }}</span>
+        {% elif selected_org_unit_id %}
+        <span class="badge bg-info ms-2">{{ scope_title }}</span>
+        {% endif %}
+        <span class="badge bg-secondary ms-2">Đã duyệt</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-dark">STT</th>
+                        <th class="text-dark">Họ tên</th>
+                        {% if admin_level == 'university' %}
+                        <th class="text-dark">Khoa/Phòng ban</th>
+                        {% else %}
+                        <th class="text-dark">Bộ môn</th>
+                        {% endif %}
+                        <th class="text-center text-dark" title="Bài báo/Hội nghị WoS/Scopus">WoS/Scopus</th>
+                        <th class="text-center text-dark" title="Tạp chí/Hội nghị quốc tế (ngoài WoS/Scopus)">Quốc tế</th>
+                        <th class="text-center text-dark" title="Tạp chí/Hội nghị trong nước">Trong nước</th>
+                        <th class="text-center text-dark" title="Sách, giáo trình, chương sách">Sách</th>
+                        <th class="text-center text-dark" title="Sở hữu trí tuệ, giải thưởng, triển lãm">SHTT</th>
+                        <th class="text-center text-dark">Đề tài</th>
+                        <th class="text-center text-dark">HĐ khác</th>
+                        <th class="text-end text-dark"><strong>Tổng giờ</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.view_user', user_id=item.user.id) }}">
+                                {{ item.user.full_name }}
+                            </a>
+                        </td>
+                        <td>
+                            <small>
+                                {% if admin_level == 'university' %}
+                                    {% if item.user.org_unit %}
+                                        {{ item.user.org_unit.name }}
+                                    {% else %}
+                                        {{ item.user.department or '-' }}
+                                    {% endif %}
+                                {% else %}
+                                    {% if item.user.user_division %}
+                                        {% if admin_level == 'university' %}
+                                        {{ item.user.user_division.full_name }}
+                                        {% else %}
+                                        {{ item.user.user_division.name }}
+                                        {% endif %}
+                                    {% elif item.user.org_unit %}
+                                        {{ item.user.org_unit.name }}
+                                    {% else %}
+                                        {{ item.user.department or '-' }}
+                                    {% endif %}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td class="text-center">
+                            {% if item.pub_groups.wos_scopus > 0 %}
+                            <span class="badge bg-success" title="Q1:{{ item.q_stats.Q1 }} Q2:{{ item.q_stats.Q2 }} Q3:{{ item.q_stats.Q3 }} Q4:{{ item.q_stats.Q4 }}">
+                                {{ item.pub_groups.wos_scopus }}
+                            </span>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.pub_groups.international > 0 %}
+                            <span class="badge bg-primary">{{ item.pub_groups.international }}</span>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.pub_groups.domestic > 0 %}
+                            <span class="badge bg-info">{{ item.pub_groups.domestic }}</span>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.pub_groups.book > 0 %}
+                            <span class="badge bg-warning text-dark">{{ item.pub_groups.book }}</span>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.pub_groups.ip_award > 0 %}
+                            <span class="badge bg-secondary">{{ item.pub_groups.ip_award }}</span>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">{{ item.project_count }}</td>
+                        <td class="text-center">{{ item.activity_count }}</td>
+                        <td class="text-end"><strong>{{ "%.0f"|format(item.total_hours) }}</strong></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="text-center text-muted py-4">Không có dữ liệu</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if report_data %}
+                <tfoot class="table-secondary">
+                    <tr>
+                        <th colspan="3" class="text-dark">Tổng cộng</th>
+                        <th class="text-center text-dark">{{ stats_data.pub_groups.wos_scopus }}</th>
+                        <th class="text-center text-dark">{{ stats_data.pub_groups.international }}</th>
+                        <th class="text-center text-dark">{{ stats_data.pub_groups.domestic }}</th>
+                        <th class="text-center text-dark">{{ stats_data.pub_groups.book }}</th>
+                        <th class="text-center text-dark">{{ stats_data.pub_groups.ip_award }}</th>
+                        <th class="text-center text-dark">{{ stats_data.project_count }}</th>
+                        <th class="text-center text-dark">{{ stats_data.activity_count }}</th>
+                        <th class="text-end text-dark"><strong>{{ "%.0f"|format(stats_data.total_hours) }}</strong></th>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Export Buttons -->
+<div class="row mt-4 mb-4">
+    <div class="col-12">
+        <button onclick="window.print()" class="btn btn-secondary">
+            <i class="bi bi-printer me-2"></i>In báo cáo
+        </button>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h6 class="mb-2"><i class="bi bi-info-circle me-2"></i>Chú thích các cột:</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-unstyled mb-0 small">
+                    <li><span class="badge bg-success me-2">WoS/Scopus</span> Bài báo + Hội nghị WoS/Scopus (có phân loại Q1-Q4)</li>
+                    <li><span class="badge bg-primary me-2">Quốc tế</span> Tạp chí/Hội nghị quốc tế ngoài WoS/Scopus</li>
+                    <li><span class="badge bg-info me-2">Trong nước</span> Tạp chí/Hội nghị trong nước</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-unstyled mb-0 small">
+                    <li><span class="badge bg-warning text-dark me-2">Sách</span> Sách chuyên khảo, giáo trình, chương sách</li>
+                    <li><span class="badge bg-secondary me-2">SHTT</span> Sở hữu trí tuệ, giải thưởng, triển lãm</li>
+                    <li class="mt-2 text-muted"><em>* Di chuột vào cột WoS/Scopus để xem chi tiết Q1-Q4</em></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Note -->
+<div class="alert alert-info mt-3">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Lưu ý:</strong> Báo cáo này chỉ tính các hoạt động đã được admin duyệt.
+    Các hoạt động chưa duyệt sẽ không được tính vào tổng giờ.
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if admin_level == 'university' %}
+{% include "admin/_cascade_org_filters.html" %}
+{% else %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const divisionSelect = document.getElementById('divisionFilter');
+    const userSelect = document.getElementById('userFilter');
+    if (!userSelect) {
+        return;
+    }
+    const userOptions = Array.from(userSelect.options).filter(opt => opt.value !== '');
+
+    function setOptionVisible(option, visible) {
+        option.hidden = !visible;
+        option.style.display = visible ? '' : 'none';
+    }
+
+    function userMatches(option, divisionId) {
+        const optionDivisionId = option.dataset.division || '';
+        if (divisionId) {
+            return optionDivisionId === divisionId;
+        }
+        return true;
+    }
+
+    function updateUsers() {
+        const divisionId = divisionSelect ? (divisionSelect.value || '') : '';
+        const previousUserId = userSelect.value || '';
+        let previousStillVisible = false;
+
+        userOptions.forEach(option => {
+            const visible = userMatches(option, divisionId);
+            setOptionVisible(option, visible);
+            if (visible && option.value === previousUserId) {
+                previousStillVisible = true;
+            }
+        });
+
+        if (previousUserId && !previousStillVisible) {
+            userSelect.value = '';
+        }
+    }
+
+    if (divisionSelect) {
+        divisionSelect.addEventListener('change', updateUsers);
+    }
+    updateUsers();
+});
+</script>
+{% endif %}
+{% endblock %}

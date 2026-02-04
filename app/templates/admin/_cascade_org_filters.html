@@ -1,0 +1,105 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const orgUnitSelect = document.getElementById('orgUnitFilter');
+  const divisionSelect = document.getElementById('divisionFilter');
+  const userSelect = document.getElementById('userFilter');
+
+  if (!orgUnitSelect && !divisionSelect && !userSelect) {
+    return;
+  }
+
+  const divisionOptions = divisionSelect
+    ? Array.from(divisionSelect.options).filter((opt) => opt.value !== '')
+    : [];
+  const userOptions = userSelect
+    ? Array.from(userSelect.options).filter((opt) => opt.value !== '')
+    : [];
+
+  function setOptionVisible(option, visible) {
+    option.hidden = !visible;
+    option.style.display = visible ? '' : 'none';
+  }
+
+  function divisionMatchesOrg(option, orgUnitId) {
+    const optionOrgUnitId = option.dataset.orgUnitId || '';
+    return !orgUnitId || optionOrgUnitId === orgUnitId;
+  }
+
+  function userMatches(option, orgUnitId, divisionId) {
+    const optionOrgUnitId = option.dataset.orgUnitId || '';
+    const optionDivisionId = option.dataset.divisionId || '';
+
+    if (divisionId) {
+      return optionDivisionId === divisionId;
+    }
+    if (orgUnitId) {
+      return optionOrgUnitId === orgUnitId;
+    }
+    return true;
+  }
+
+  function updateDivisions() {
+    if (!orgUnitSelect || !divisionSelect) {
+      return;
+    }
+
+    const orgUnitId = orgUnitSelect.value || '';
+    const previousDivisionId = divisionSelect.value || '';
+    let previousStillVisible = false;
+
+    divisionOptions.forEach((option) => {
+      const visible = divisionMatchesOrg(option, orgUnitId);
+      setOptionVisible(option, visible);
+      if (visible && option.value === previousDivisionId) {
+        previousStillVisible = true;
+      }
+    });
+
+    if (previousDivisionId && !previousStillVisible) {
+      divisionSelect.value = '';
+    }
+  }
+
+  function updateUsers() {
+    if (!userSelect) {
+      return;
+    }
+
+    const orgUnitId = orgUnitSelect ? orgUnitSelect.value || '' : '';
+    const divisionId = divisionSelect ? divisionSelect.value || '' : '';
+    const previousUserId = userSelect.value || '';
+    let previousStillVisible = false;
+
+    userOptions.forEach((option) => {
+      const visible = userMatches(option, orgUnitId, divisionId);
+      setOptionVisible(option, visible);
+      if (visible && option.value === previousUserId) {
+        previousStillVisible = true;
+      }
+    });
+
+    if (previousUserId && !previousStillVisible) {
+      userSelect.value = '';
+    }
+  }
+
+  function handleOrgUnitChange() {
+    updateDivisions();
+    updateUsers();
+  }
+
+  function handleDivisionChange() {
+    updateUsers();
+  }
+
+  if (orgUnitSelect) {
+    orgUnitSelect.addEventListener('change', handleOrgUnitChange);
+  }
+  if (divisionSelect) {
+    divisionSelect.addEventListener('change', handleDivisionChange);
+  }
+
+  handleOrgUnitChange();
+});
+</script>
+

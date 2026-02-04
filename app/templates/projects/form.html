@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Thêm' if action == 'add' else 'Sửa' }} đề tài - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('projects.list_projects') }}">Đề tài, dự án</a></li>
+                <li class="breadcrumb-item active">{{ 'Thêm mới' if action == 'add' else 'Chỉnh sửa' }}</li>
+            </ol>
+        </nav>
+
+        <h3 class="mb-4">
+            <i class="bi bi-{% if action == 'add' %}plus-lg{% else %}pencil{% endif %} me-2"></i>
+            {{ 'Thêm đề tài mới' if action == 'add' else 'Sửa đề tài' }}
+        </h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <!-- Thông tin cơ bản -->
+                    <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>Thông tin cơ bản</h5>
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Tên đề tài <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title"
+                            value="{{ project.title if project else '' }}" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="project_code" class="form-label">Mã đề tài <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="project_code" name="project_code"
+                                value="{{ project.project_code if project else '' }}" placeholder="VD: ĐTĐL.CN-45/22"
+                                required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="project_level" class="form-label">Cấp đề tài <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="project_level" name="project_level" required
+                                onchange="toggleFundingField()">
+                                <option value="">-- Chọn cấp đề tài --</option>
+                                {% for val, label in level_choices %}
+                                <option value="{{ val }}" {% if project and project.project_level==val %}selected{%
+                                    endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="start_year" class="form-label">Năm bắt đầu <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="start_year" name="start_year" min="2000"
+                                max="{{ current_year + 5 }}"
+                                value="{{ project.start_year if project else current_year }}" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="end_year" class="form-label">Năm kết thúc <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="end_year" name="end_year" min="2000"
+                                max="{{ current_year + 10 }}"
+                                value="{{ project.end_year if project else current_year }}" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status" name="status" required>
+                                {% for val, label in status_choices %}
+                                <option value="{{ val }}" {% if project and project.status==val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Vai trò và thành viên -->
+                    <h5 class="mb-3 mt-4"><i class="bi bi-people me-2"></i>Vai trò & Thành viên</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="role" class="form-label">Vai trò của bạn <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required>
+                                {% for val, label in role_choices %}
+                                <option value="{{ val }}" {% if project and project.role==val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="total_members" class="form-label">Tổng số thành viên <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="total_members" name="total_members" min="1"
+                                max="50" value="{{ project.total_members if project else 1 }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="funding_agency" class="form-label">Cơ quan quản lý/Tài trợ</label>
+                        <input type="text" class="form-control" id="funding_agency" name="funding_agency"
+                            value="{{ project.funding_agency if project else '' }}"
+                            placeholder="VD: Bộ KH&CN, ĐHQGHN, VinGroup...">
+                    </div>
+
+                    <!-- Giá trị tài trợ và số năm thực hiện (chỉ hiện cho đề tài hợp tác) -->
+                    <div id="funding_amount_group" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="funding_amount" class="form-label">
+                                    Giá trị tài trợ (tỷ đồng) <span class="text-danger">*</span>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip"
+                                        title="Công thức: 100 + 1000×(giá trị tỷ đồng)/số năm thực hiện"></i>
+                                </label>
+                                <input type="number" class="form-control" id="funding_amount" name="funding_amount" step="0.01"
+                                    min="0.01" value="{{ project.funding_amount if project else '' }}" placeholder="VD: 1.5">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="duration_years" class="form-label">
+                                    Số năm thực hiện <span class="text-danger">*</span>
+                                    <i class="bi bi-info-circle" data-bs-toggle="tooltip"
+                                        title="Số năm thực tế thực hiện (dùng trong công thức tính giờ). Có thể khác khoảng năm bắt đầu - kết thúc."></i>
+                                </label>
+                                <input type="number" class="form-control" id="duration_years" name="duration_years"
+                                    min="1" max="20" value="{{ project.duration_years if project else '' }}" placeholder="VD: 2">
+                                <small class="text-muted">Dùng trong công thức: 100 + 1000×(tỷ đồng)/số năm</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mô tả -->
+                    <h5 class="mb-3 mt-4"><i class="bi bi-card-text me-2"></i>Mô tả & Ghi chú</h5>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Mô tả đề tài</label>
+                        <textarea class="form-control" id="description" name="description"
+                            rows="3">{{ project.description if project else '' }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Ghi chú</label>
+                        <textarea class="form-control" id="notes" name="notes"
+                            rows="2">{{ project.notes if project else '' }}</textarea>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('projects.list_projects') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
+                                <i class="bi bi-save me-1"></i>Lưu nháp
+                            </button>
+                            <button type="submit" name="action" value="submit" class="btn btn-success">
+                                <i class="bi bi-send me-1"></i>Gửi duyệt
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block text-end">
+                        <i class="bi bi-info-circle me-1"></i>
+                        "Lưu nháp" để lưu và chỉnh sửa sau. "Gửi duyệt" để gửi cho Admin xem xét.
+                    </small>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hướng dẫn bên phải -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>Hướng dẫn
+            </div>
+            <div class="card-body">
+                <h6>Cấp đề tài và số giờ:</h6>
+                <ul class="small">
+                    <li><strong>Cấp Nhà nước:</strong> 1000 giờ tổng (CT: 500, TK: 250, TV: 250)</li>
+                    <li><strong>Cấp ĐHQGHN/Bộ:</strong> 800 giờ tổng (CT: 400, TK: 200, TV: 200)</li>
+                    <li><strong>Cấp Trường:</strong> 300 giờ tổng (Chủ trì: 300)</li>
+                    <li><strong>Hợp tác/Dịch vụ:</strong> 100 + 1000×(tỷ đồng)/số năm (giờ/năm)</li>
+                </ul>
+
+                <div class="alert alert-info small mt-2">
+                    <i class="bi bi-calculator me-1"></i>
+                    <strong>Quy đổi theo năm:</strong> Đề tài trải qua nhiều năm lịch sẽ được chia đều giờ cho mỗi năm khi thống kê.
+                    VD: Đề tài cấp Trường (2025-2026), chủ trì = 300 giờ → 150 giờ/năm lịch.
+                </div>
+
+                <h6 class="mt-3">Vai trò:</h6>
+                <ul class="small">
+                    <li><strong>Chủ trì:</strong> 50% tổng giờ</li>
+                    <li><strong>Thư ký:</strong> 25% tổng giờ</li>
+                    <li><strong>Thành viên:</strong> 25% tổng giờ</li>
+                </ul>
+
+                <div class="alert alert-warning small mt-3">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Lưu ý:</strong> Đề tài gia hạn không được tính giờ NCKH (theo mục f, Quy chế).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleFundingField() {
+        const level = document.getElementById('project_level').value;
+        const fundingGroup = document.getElementById('funding_amount_group');
+        const fundingInput = document.getElementById('funding_amount');
+        const durationInput = document.getElementById('duration_years');
+
+        if (level === 'cooperation') {
+            fundingGroup.style.display = 'block';
+            fundingInput.required = true;
+            durationInput.required = true;
+        } else {
+            fundingGroup.style.display = 'none';
+            fundingInput.required = false;
+            durationInput.required = false;
+        }
+    }
+
+    function updateDurationYears() {
+        const startYear = parseInt(document.getElementById('start_year').value) || 0;
+        const endYear = parseInt(document.getElementById('end_year').value) || 0;
+        const durationInput = document.getElementById('duration_years');
+        if (startYear > 0 && endYear >= startYear && !durationInput.value) {
+            durationInput.value = endYear - startYear + 1;
+        }
+    }
+
+    // Chạy khi load trang
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleFundingField();
+        updateDurationYears();
+
+        document.getElementById('start_year').addEventListener('change', updateDurationYears);
+        document.getElementById('end_year').addEventListener('change', updateDurationYears);
+
+        // Enable tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% endblock %}

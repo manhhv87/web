@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'add' %}Thêm{% else %}Sửa{% endif %} Bộ môn - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.manage_departments') }}">Bộ môn</a></li>
+                <li class="breadcrumb-item active">{% if action == 'add' %}Thêm{% else %}Sửa{% endif %}</li>
+            </ol>
+        </nav>
+        <h2>
+            <i class="bi bi-building me-2"></i>
+            {% if action == 'add' %}Thêm Bộ môn mới{% else %}Sửa Bộ môn{% endif %}
+        </h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Tên bộ môn <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required
+                               value="{{ department.name if department else '' }}"
+                               placeholder="VD: Cơ học kỹ thuật">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mã bộ môn</label>
+                        <input type="text" name="code" class="form-control"
+                               value="{{ department.code if department else '' }}"
+                               placeholder="VD: CHKT">
+                        <div class="form-text">Mã ngắn gọn để nhận dạng (không bắt buộc)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea name="description" class="form-control" rows="3"
+                                  placeholder="Mô tả về bộ môn (không bắt buộc)">{{ department.description if department else '' }}</textarea>
+                    </div>
+
+                    {% if action == 'edit' %}
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="isActive"
+                                   {% if department.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="isActive">
+                                Đang hoạt động
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.manage_departments') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {% if action == 'add' %}Thêm bộ môn{% else %}Lưu thay đổi{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle me-1"></i>Hướng dẫn</h6>
+                <ul class="small mb-0">
+                    <li>Tên bộ môn phải duy nhất trong hệ thống</li>
+                    <li>Mã bộ môn nên ngắn gọn (3-10 ký tự)</li>
+                    <li>Sau khi tạo, bạn có thể thêm thành viên vào bộ môn</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

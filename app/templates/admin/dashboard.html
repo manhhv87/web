@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="bi bi-shield-lock me-2"></i>Admin Dashboard - {{ current_year }}</h2>
+                <p class="text-muted mb-0">
+                    Xin chào, <strong>{{ current_user.full_name }}</strong>
+                    <span class="badge
+                        {% if admin_level == 'university' %}bg-danger
+                        {% elif admin_level == 'faculty' %}bg-warning text-dark
+                        {% else %}bg-info{% endif %}">
+                        {{ admin_level_display }}
+                    </span>
+                </p>
+            </div>
+            <div class="text-end">
+                <small class="text-muted">{{ scope_label }}: <strong>{{ scope_name }}</strong></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Level Info -->
+<div class="row mt-3">
+    <div class="col-12">
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mt-3">
+    <!-- Users Stats -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Người dùng</h6>
+                        <p class="stat-value mb-0">{{ total_users }}</p>
+                        <small class="text-success">{{ active_users }} hoạt động</small>
+                        {% if admin_stats and admin_level == 'university' %}
+                        <br><small class="text-muted">
+                            Admin: {{ admin_stats.university }} Trường, {{ admin_stats.faculty }} Khoa, {{ admin_stats.department }} BM
+                        </small>
+                        {% endif %}
+                    </div>
+                    <i class="bi bi-people fs-1 text-primary opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('admin.list_users') }}" class="btn btn-sm btn-outline-primary w-100">
+                    Quản lý người dùng
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publications Stats -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Ấn phẩm khoa học</h6>
+                        <p class="stat-value mb-0">{{ total_publications }}</p>
+                        <small class="text-success">{{ approved_publications }} đã duyệt</small>
+                        {% if pending_publications > 0 %}
+                        <br><small class="text-warning fw-bold">{{ pending_publications }} cần xử lý</small>
+                        {% endif %}
+                        {% if returned_publications > 0 %}
+                        <br><small class="text-danger">{{ returned_publications }} đã trả lại</small>
+                        {% endif %}
+                    </div>
+                    <i class="bi bi-file-earmark-text fs-1 text-primary opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('admin.list_all_publications') }}"
+                    class="btn btn-sm btn-outline-warning w-100">
+                    {% if admin_level == 'department' %}Xác nhận{% elif admin_level == 'faculty' %}Duyệt{% else %}Phê duyệt{% endif %} ({{ pending_publications }})
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Stats -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Đề tài, dự án</h6>
+                        <p class="stat-value mb-0">{{ total_projects }}</p>
+                        <small class="text-success">{{ approved_projects }} đã duyệt</small>
+                        {% if pending_projects > 0 %}
+                        <br><small class="text-warning fw-bold">{{ pending_projects }} cần xử lý</small>
+                        {% endif %}
+                        {% if returned_projects > 0 %}
+                        <br><small class="text-danger">{{ returned_projects }} đã trả lại</small>
+                        {% endif %}
+                    </div>
+                    <i class="bi bi-folder2-open fs-1 text-primary opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('admin.list_all_projects') }}"
+                    class="btn btn-sm btn-outline-warning w-100">
+                    {% if admin_level == 'department' %}Xác nhận{% elif admin_level == 'faculty' %}Duyệt{% else %}Phê duyệt{% endif %} ({{ pending_projects }})
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activities Stats -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Hoạt động KHCN</h6>
+                        <p class="stat-value mb-0">{{ total_activities }}</p>
+                        <small class="text-success">{{ approved_activities }} đã duyệt</small>
+                        {% if pending_activities > 0 %}
+                        <br><small class="text-warning fw-bold">{{ pending_activities }} cần xử lý</small>
+                        {% endif %}
+                        {% if returned_activities > 0 %}
+                        <br><small class="text-danger">{{ returned_activities }} đã trả lại</small>
+                        {% endif %}
+                    </div>
+                    <i class="bi bi-activity fs-1 text-primary opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('admin.list_all_activities') }}"
+                    class="btn btn-sm btn-outline-warning w-100">
+                    {% if admin_level == 'department' %}Xác nhận{% elif admin_level == 'faculty' %}Duyệt{% else %}Phê duyệt{% endif %} ({{ pending_activities }})
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Items Alert -->
+{% if total_my_pending > 0 %}
+<div class="row mt-2">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Có <strong>{{ total_my_pending }}</strong> mục cần bạn
+                {% if admin_level == 'department' %}xác nhận{% elif admin_level == 'faculty' %}duyệt{% else %}phê duyệt{% endif %}
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('admin.list_all_publications') }}"
+                    class="btn btn-outline-primary me-2">
+                    <i class="bi bi-file-earmark-text me-1"></i>Ấn phẩm ({{ pending_publications }})
+                </a>
+                <a href="{{ url_for('admin.list_all_projects') }}" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-folder2-open me-1"></i>Đề tài ({{ pending_projects }})
+                </a>
+                <a href="{{ url_for('admin.list_all_activities') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-activity me-1"></i>Hoạt động ({{ pending_activities }})
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Pending Items -->
+<div class="row mt-4">
+    <!-- Recent Pending Publications -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                Ấn phẩm cần
+                {% if admin_level == 'department' %}xác nhận{% elif admin_level == 'faculty' %}duyệt{% else %}phê duyệt{% endif %}
+            </div>
+            <div class="card-body">
+                {% if recent_pending_pubs %}
+                <ul class="list-group list-group-flush">
+                    {% for pub in recent_pending_pubs %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{ pub.title[:40] }}{% if pub.title|length > 40 %}...{% endif %}</div>
+                            <small class="text-muted">{{ pub.author.full_name }} - {{ pub.year }}</small>
+                            <br>
+                            <span class="badge
+                                {% if pub.approval_status == 'pending' %}bg-secondary
+                                {% elif pub.approval_status == 'department_approved' %}bg-info
+                                {% elif pub.approval_status == 'faculty_approved' %}bg-warning text-dark
+                                {% endif %}">
+                                {% if pub.approval_status == 'pending' %}Chờ BM
+                                {% elif pub.approval_status == 'department_approved' %}Chờ Khoa
+                                {% elif pub.approval_status == 'faculty_approved' %}Chờ Trường
+                                {% endif %}
+                            </span>
+                        </div>
+                        <form action="{{ url_for('admin.approve_publication', pub_id=pub.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-success" title="{% if admin_level == 'department' %}Xác nhận{% elif admin_level == 'faculty' %}Duyệt{% else %}Phê duyệt{% endif %}">
+                                <i class="bi bi-check"></i>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">Không có ấn phẩm nào cần xử lý.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Pending Projects -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-folder2-open me-2"></i>
+                Đề tài cần
+                {% if admin_level == 'department' %}xác nhận{% elif admin_level == 'faculty' %}duyệt{% else %}phê duyệt{% endif %}
+            </div>
+            <div class="card-body">
+                {% if recent_pending_projects %}
+                <ul class="list-group list-group-flush">
+                    {% for proj in recent_pending_projects %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{ proj.title[:40] }}{% if proj.title|length > 40 %}...{% endif %}</div>
+                            <small class="text-muted">{{ proj.user.full_name }} - {{ proj.start_year }}</small>
+                            <br>
+                            <span class="badge
+                                {% if proj.approval_status == 'pending' %}bg-secondary
+                                {% elif proj.approval_status == 'department_approved' %}bg-info
+                                {% elif proj.approval_status == 'faculty_approved' %}bg-warning text-dark
+                                {% endif %}">
+                                {% if proj.approval_status == 'pending' %}Chờ BM
+                                {% elif proj.approval_status == 'department_approved' %}Chờ Khoa
+                                {% elif proj.approval_status == 'faculty_approved' %}Chờ Trường
+                                {% endif %}
+                            </span>
+                        </div>
+                        <form action="{{ url_for('admin.approve_project', proj_id=proj.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-success" title="{% if admin_level == 'department' %}Xác nhận{% elif admin_level == 'faculty' %}Duyệt{% else %}Phê duyệt{% endif %}">
+                                <i class="bi bi-check"></i>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">Không có đề tài nào cần xử lý.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Pending Activities -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-activity me-2"></i>
+                Hoạt động cần
+                {% if admin_level == 'department' %}xác nhận{% elif admin_level == 'faculty' %}duyệt{% else %}phê duyệt{% endif %}
+            </div>
+            <div class="card-body">
+                {% if recent_pending_activities %}
+                <ul class="list-group list-group-flush">
+                    {% for act in recent_pending_activities %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{ act.title[:40] }}{% if act.title|length > 40 %}...{% endif %}</div>
+                            <small class="text-muted">{{ act.user.full_name }} - {{ act.year }}</small>
+                            <br>
+                            <span class="badge
+                                {% if act.approval_status == 'pending' %}bg-secondary
+                                {% elif act.approval_status == 'department_approved' %}bg-info
+                                {% elif act.approval_status == 'faculty_approved' %}bg-warning text-dark
+                                {% endif %}">
+                                {% if act.approval_status == 'pending' %}Chờ BM
+                                {% elif act.approval_status == 'department_approved' %}Chờ Khoa
+                                {% elif act.approval_status == 'faculty_approved' %}Chờ Trường
+                                {% endif %}
+                            </span>
+                        </div>
+                        <form action="{{ url_for('admin.approve_activity', act_id=act.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-success" title="{% if admin_level == 'department' %}Xác nhận{% elif admin_level == 'faculty' %}Duyệt{% else %}Phê duyệt{% endif %}">
+                                <i class="bi bi-check"></i>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">Không có hoạt động nào cần xử lý.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Workflow Legend -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-question-circle me-2"></i>Quy trình duyệt 3 cấp
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <div>
+                        <span class="badge bg-secondary">Chờ BM</span>
+                        <i class="bi bi-arrow-right mx-1"></i>
+                    </div>
+                    <div>
+                        <span class="badge bg-info">Chờ Khoa</span>
+                        <i class="bi bi-arrow-right mx-1"></i>
+                    </div>
+                    <div>
+                        <span class="badge bg-warning text-dark">Chờ Trường</span>
+                        <i class="bi bi-arrow-right mx-1"></i>
+                    </div>
+                    <div>
+                        <span class="badge bg-success">Đã duyệt</span>
+                    </div>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    Công trình phải được xác nhận bởi Bộ môn, sau đó duyệt bởi Khoa, và cuối cùng phê duyệt bởi Trường (PKHCN).
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

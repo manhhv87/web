@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Dang ky - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow">
+      <div class="card-header text-center">
+        <h4 class="mb-0"><i class="bi bi-person-plus me-2"></i>Đăng ký tài khoản</h4>
+      </div>
+
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category in ['danger','error'] else category }} mb-3" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div id="clientErrorBox" class="alert alert-danger d-none" role="alert"></div>
+
+        <form method="post" id="registerForm" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+            <input type="text" name="full_name" class="form-control" required
+                   placeholder="Nguyen Van A"
+                   value="{{ request.form.get('full_name','') }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" class="form-control" required
+                   placeholder="email@vnu.edu.vn"
+                   autocomplete="email"
+                   value="{{ request.form.get('email','') }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Khoa/Phòng ban <span class="text-danger">*</span></label>
+            <select name="organization_unit_id" id="organizationUnitSelect" class="form-select" required>
+              <option value="">-- Chọn Khoa/Phòng ban --</option>
+              {% if org_units %}
+                <optgroup label="Khoa">
+                  {% for unit in org_units if unit.unit_type == 'faculty' %}
+                    <option value="{{ unit.id }}"
+                            data-unit-type="{{ unit.unit_type }}"
+                            data-requires-division="{{ 'true' if unit.requires_division else 'false' }}"
+                            {% if selected_org_unit_id == unit.id %}selected{% endif %}>
+                      {{ unit.name }}
+                    </option>
+                  {% endfor %}
+                </optgroup>
+
+                <optgroup label="Phòng ban">
+                  {% for unit in org_units if unit.unit_type == 'office' %}
+                    <option value="{{ unit.id }}"
+                            data-unit-type="{{ unit.unit_type }}"
+                            data-requires-division="false"
+                            {% if selected_org_unit_id == unit.id %}selected{% endif %}>
+                      {{ unit.name }}
+                    </option>
+                  {% endfor %}
+                </optgroup>
+              {% endif %}
+            </select>
+            <div class="form-text">Chọn Khoa hoặc Phòng ban bạn đang công tác</div>
+          </div>
+
+          <div class="mb-3" id="divisionField" style="display:none;">
+            <label class="form-label">Bộ môn <span class="text-danger" id="divisionRequired">*</span></label>
+            <div class="d-flex align-items-center gap-2">
+              <select name="division_id" id="divisionSelect" class="form-select">
+                <option value="">-- Chọn Bộ môn --</option>
+              </select>
+              <div id="divisionSpinner" class="spinner-border text-secondary" role="status"
+                   style="width:1.25rem;height:1.25rem;display:none;">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Mã cán bộ</label>
+            <input type="text" name="employee_id" class="form-control"
+                   placeholder="CB12345"
+                   autocomplete="off"
+                   value="{{ request.form.get('employee_id','') }}">
+          </div>
+
+          <!-- Password (icon inside input) -->
+          <div class="mb-2">
+            <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+
+            <div class="pw-wrap">
+              <input
+                type="password"
+                id="passwordInput"
+                name="password"
+                class="form-control pw-input"
+                required
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="Ít nhất 8 ký tự"
+              >
+              <button
+                type="button"
+                class="pw-eye"
+                id="togglePassword"
+                aria-label="Hiển thị/Ẩn mật khẩu"
+                title="Hiển thị/Ẩn mật khẩu"
+              >
+                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+              </button>
+            </div>
+
+            <div class="form-text">
+              Mật khẩu ≥ 8 ký tự, có chữ + số + ký tự đặc biệt, và bắt đầu bằng chữ cái.
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+
+            <div class="pw-wrap">
+              <input
+                type="password"
+                id="confirmPasswordInput"
+                name="confirm_password"
+                class="form-control pw-input"
+                required
+                autocomplete="new-password"
+              >
+              <button
+                type="button"
+                class="pw-eye"
+                id="toggleConfirmPassword"
+                aria-label="Hiển thị/Ẩn xác nhận mật khẩu"
+                title="Hiển thị/Ẩn xác nhận mật khẩu"
+              >
+                <i class="bi bi-eye" id="toggleConfirmPasswordIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-person-plus me-2"></i>Đăng ký
+          </button>
+        </form>
+      </div>
+
+      <div class="card-footer text-center">
+        <small>Đã có tài khoản? <a href="{{ url_for('auth.login') }}">Đăng nhập</a></small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Eye icon inside input (no circle, no border) */
+  .pw-wrap{
+    position: relative;
+  }
+  .pw-input{
+    padding-right: 2.6rem; /* room for icon */
+  }
+  .pw-eye{
+    position: absolute;
+    top: 50%;
+    right: .65rem;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: rgba(0,0,0,.55);
+    padding: .25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .pw-eye:hover{
+    color: rgba(0,0,0,.8);
+  }
+  .pw-eye:focus{
+    outline: none;
+    box-shadow: none;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('registerForm');
+
+  const orgUnitSelect = document.getElementById('organizationUnitSelect');
+  const divisionField = document.getElementById('divisionField');
+  const divisionSelect = document.getElementById('divisionSelect');
+  const divisionRequired = document.getElementById('divisionRequired');
+
+  const passwordInput = document.getElementById('passwordInput');
+  const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+
+  const clientErrorBox = document.getElementById('clientErrorBox');
+
+  const preselectedDivisionId = "{{ selected_division_id or '' }}";
+
+  function showClientError(msg) {
+    clientErrorBox.textContent = msg;
+    clientErrorBox.classList.remove('d-none');
+  }
+  function clearClientError() {
+    clientErrorBox.textContent = '';
+    clientErrorBox.classList.add('d-none');
+  }
+
+  // Password policy:
+  // - start with a letter
+  // - >= 8 chars total
+  // - has at least 1 digit
+  // - has at least 1 special char
+  const passwordRegex = /^[A-Za-z](?=.*\d)(?=.*[^A-Za-z0-9]).{7,}$/;
+
+  function toggleVisibility(inputEl, iconEl) {
+    const isPassword = inputEl.type === 'password';
+    inputEl.type = isPassword ? 'text' : 'password';
+    iconEl.classList.toggle('bi-eye', !isPassword);
+    iconEl.classList.toggle('bi-eye-slash', isPassword);
+  }
+
+  document.getElementById('togglePassword').addEventListener('click', () => {
+    toggleVisibility(passwordInput, document.getElementById('togglePasswordIcon'));
+  });
+  document.getElementById('toggleConfirmPassword').addEventListener('click', () => {
+    toggleVisibility(confirmPasswordInput, document.getElementById('toggleConfirmPasswordIcon'));
+  });
+
+  async function loadDivisions(orgUnitId) {
+    if (!orgUnitId) {
+      divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+      return;
+    }
+
+    const spinner = document.getElementById('divisionSpinner');
+    const submitBtn = document.querySelector('#registerForm button[type="submit"]');
+    spinner.style.display = 'inline-block';
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const response = await fetch(`/api/organization-units/${orgUnitId}/divisions`);
+      const divisions = await response.json();
+
+      divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+      divisions.forEach(div => {
+        const option = document.createElement('option');
+        option.value = div.id;
+        option.textContent = div.name;
+        if (preselectedDivisionId && String(div.id) === String(preselectedDivisionId)) {
+          option.selected = true;
+        }
+        divisionSelect.appendChild(option);
+      });
+    } catch (e) {
+      console.error('Error loading divisions:', e);
+    } finally {
+      spinner.style.display = 'none';
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function updateDivisionField() {
+    const selectedOption = orgUnitSelect.options[orgUnitSelect.selectedIndex];
+
+    if (!selectedOption || !selectedOption.value) {
+      divisionField.style.display = 'none';
+      divisionSelect.required = false;
+      divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+      return;
+    }
+
+    const unitType = (selectedOption.getAttribute('data-unit-type') || '').toLowerCase();
+    const requiresDivision = (selectedOption.getAttribute('data-requires-division') || '').toLowerCase() === 'true';
+
+    if (requiresDivision || unitType === 'faculty') {
+      divisionField.style.display = 'block';
+      divisionSelect.required = true;
+      if (divisionRequired) divisionRequired.style.display = 'inline';
+      loadDivisions(selectedOption.value);
+    } else {
+      divisionField.style.display = 'none';
+      divisionSelect.required = false;
+      if (divisionRequired) divisionRequired.style.display = 'none';
+      divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+    }
+  }
+
+  orgUnitSelect.addEventListener('change', function() {
+    divisionSelect.value = '';
+    updateDivisionField();
+  });
+
+  // Employee ID format: 1-5 uppercase letters + 4-10 digits (e.g. CB090708)
+  const employeeIdRegex = /^[A-Z]{1,5}\d{4,10}$/;
+
+  // Confirm mismatch: keep all inputs, only clear confirm
+  form.addEventListener('submit', function(e) {
+    clearClientError();
+
+    // Validate employee ID format (if filled)
+    const eid = (document.querySelector('[name="employee_id"]').value || '').trim();
+    if (eid && !employeeIdRegex.test(eid)) {
+      e.preventDefault();
+      showClientError('Mã cán bộ phải gồm 1-5 chữ cái viết hoa và 4-10 chữ số (ví dụ: CB090708).');
+      document.querySelector('[name="employee_id"]').focus();
+      return;
+    }
+
+    const pw = passwordInput.value || '';
+    const cpw = confirmPasswordInput.value || '';
+
+    if (!passwordRegex.test(pw)) {
+      e.preventDefault();
+      showClientError('Mật khẩu không hợp lệ: phải ≥ 8 ký tự, bắt đầu bằng chữ, và có cả số + ký tự đặc biệt.');
+      passwordInput.focus();
+      return;
+    }
+
+    if (pw !== cpw) {
+      e.preventDefault();
+      showClientError('Xác nhận mật khẩu không khớp. Vui lòng nhập lại.');
+      confirmPasswordInput.value = '';
+      confirmPasswordInput.focus();
+      return;
+    }
+  });
+
+  updateDivisionField();
+});
+</script>
+{% endblock %}

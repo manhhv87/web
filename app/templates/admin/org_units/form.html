@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if action == 'add' %}Thêm Khoa/Phòng ban{% else %}Sửa Khoa/Phòng ban{% endif %} - {{ app_name }}
+{% endblock %}
+
+{% set data = form_data or {} %}
+
+{% block content %}
+<div class="row mt-4">
+  <div class="col-12">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.manage_org_units') }}">Khoa/Phòng ban</a></li>
+        <li class="breadcrumb-item active">{% if action=='add' %}Thêm{% else %}Sửa{% endif %}</li>
+      </ol>
+    </nav>
+    <h2>
+      <i class="bi bi-diagram-3 me-2"></i>
+      {% if action == 'add' %}Thêm Khoa/Phòng ban{% else %}Sửa Khoa/Phòng ban{% endif %}
+    </h2>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Tên <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="name"
+                 value="{{ data.get('name', org_unit.name if org_unit else '') }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Mã</label>
+          <input type="text" class="form-control" name="code"
+                 value="{{ data.get('code', org_unit.code if org_unit else '') }}"
+                 placeholder="VD: CK, DT, PDT">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Loại <span class="text-danger">*</span></label>
+          {% set current_type = data.get('unit_type', org_unit.unit_type if org_unit else 'faculty') %}
+          <select class="form-select" name="unit_type" required>
+            <option value="faculty" {% if current_type=='faculty' %}selected{% endif %}>Khoa (faculty)</option>
+            <option value="office" {% if current_type=='office' %}selected{% endif %}>Phòng ban (office)</option>
+          </select>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Mô tả</label>
+          <textarea class="form-control" name="description" rows="3">{{ data.get('description', org_unit.description if org_unit else '') }}</textarea>
+        </div>
+
+        <div class="col-12">
+          {% set active = data.get('is_active', org_unit.is_active if org_unit else True) %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">Hoạt động</label>
+          </div>
+        </div>
+
+        <div class="col-12 d-flex justify-content-between">
+          <a href="{{ url_for('admin.manage_org_units') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>Lưu
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

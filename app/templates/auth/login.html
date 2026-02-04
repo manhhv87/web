@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Dang nhap - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow">
+      <div class="card-header text-center">
+        <h4 class="mb-0"><i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</h4>
+      </div>
+
+      <div class="card-body">
+        {# Flash messages (nếu base chưa hiển thị) #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category in ['danger','error'] else category }} mb-3" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" id="loginForm" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" required
+                   placeholder="email@example.com"
+                   autocomplete="email"
+                   value="{{ request.args.get('email', '') or request.form.get('email', '') }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Mật khẩu</label>
+
+            <div class="pw-wrap">
+              <input type="password" id="passwordInput" name="password" class="form-control pw-input" required autocomplete="current-password">
+              <button type="button" class="pw-eye" id="togglePassword"
+                      aria-label="Hiển thị/Ẩn mật khẩu" title="Hiển thị/Ẩn mật khẩu">
+                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3 form-check">
+            <input type="checkbox" name="remember" class="form-check-input" id="remember"
+                   {% if request.form.get('remember') %}checked{% endif %}>
+            <label class="form-check-label" for="remember">Ghi nhớ đăng nhập</label>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+          </button>
+        </form>
+      </div>
+
+      <div class="card-footer text-center">
+        <small>Chưa có tài khoản? <a href="{{ url_for('auth.register') }}">Đăng ký</a></small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Eye icon inside input (no border/circle) */
+  .pw-wrap{ position: relative; }
+  .pw-input{ padding-right: 2.6rem; }
+  .pw-eye{
+    position: absolute;
+    top: 50%;
+    right: .65rem;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: rgba(0,0,0,.55);
+    padding: .25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .pw-eye:hover{ color: rgba(0,0,0,.8); }
+  .pw-eye:focus{ outline: none; box-shadow: none; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const passwordInput = document.getElementById('passwordInput');
+  const toggleBtn = document.getElementById('togglePassword');
+  const icon = document.getElementById('togglePasswordIcon');
+
+  function toggleVisibility() {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    icon.classList.toggle('bi-eye', !isPassword);
+    icon.classList.toggle('bi-eye-slash', isPassword);
+  }
+
+  toggleBtn.addEventListener('click', toggleVisibility);
+});
+</script>
+{% endblock %}

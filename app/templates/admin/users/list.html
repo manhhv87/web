@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý người dùng - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item active">Người dùng</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-people me-2"></i>Quản lý người dùng</h2>
+        <p class="text-muted">Quản lý thông tin người dùng trong hệ thống (không bao gồm thông tin phân quyền admin)</p>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list me-2"></i>Danh sách người dùng ({{ pagination.total if pagination else users|length }})</span>
+        {% if can_add_user %}
+        <a href="{{ url_for('admin.add_user') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Thêm người dùng mới
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Họ tên</th>
+                        <th>Email</th>
+                        <th>Mã cán bộ</th>
+                        {% if admin_level == 'university' %}
+                        <th>Khoa/Phòng ban</th>
+                        {% else %}
+                        <th>Bộ môn</th>
+                        {% endif %}
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    {% if user.can_view %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.view_user', user_id=user.id) }}">
+                                {{ user.full_name }}
+                            </a>
+                            {% if user.is_admin %}
+                            <i class="bi bi-shield-fill text-warning ms-1"
+                               title="Có quyền admin - Quản lý tại mục Quản lý Admin"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.employee_id or '-' }}</td>
+                        <td>
+                            {% if admin_level == 'university' %}
+                            {{ user.organization_unit_name or '-' }}
+                            {% else %}
+                            {{ user.division_name or '-' }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge bg-success">Hoạt động</span>
+                            {% else %}
+                            <span class="badge bg-warning">Đã khóa</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('admin.view_user', user_id=user.id) }}"
+                                    class="btn btn-outline-primary" title="Xem chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if user.can_manage %}
+                                <a href="{{ url_for('admin.edit_user', user_id=user.id) }}"
+                                    class="btn btn-outline-secondary" title="Sửa thông tin">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                                {% if admin_level == 'university' and user.id != current_user.id and user.can_manage %}
+                                <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}" method="post"
+                                    class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                        class="btn btn-outline-{{ 'success' if not user.is_active else 'warning' }}"
+                                        title="{{ 'Mở khóa' if not user.is_active else 'Khóa tài khoản' }}">
+                                        <i class="bi bi-{{ 'unlock' if not user.is_active else 'lock' }}"></i>
+                                    </button>
+                                </form>
+                                {# Không cho xóa user có quyền admin - phải thu hồi quyền trước #}
+                                {% if not user.is_admin %}
+                                <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="post"
+                                    class="d-inline"
+                                    onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này? Tất cả dữ liệu sẽ bị xóa!');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-secondary" disabled
+                                    title="Thu hồi quyền admin trước khi xóa">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pagination and pagination.pages > 1 %}
+        <nav class="mt-3" aria-label="Users pagination">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ pagination_base_url }}{{ pagination.prev_num }}" aria-label="Previous">
+                        &laquo;
+                    </a>
+                </li>
+                {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if p %}
+                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ pagination_base_url }}{{ p }}">{{ p }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ pagination_base_url }}{{ pagination.next_num }}" aria-label="Next">
+                        &raquo;
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h6>Chú thích:</h6>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                    <span><span class="badge bg-success me-2">Hoạt động</span>Đang hoạt động</span>
+                    <span><span class="badge bg-warning me-2">Đã khóa</span>Bị khóa</span>
+                    <span class="text-muted">
+                        <i class="bi bi-shield-fill text-warning me-1"></i> Có quyền admin (không xóa trực tiếp)
+                    </span>
+                </div>
+                <hr>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Để quản lý quyền admin hoặc xóa user có quyền admin, vui lòng truy cập
+                    <a href="{{ url_for('admin.list_admins') }}">Quản lý Admin</a> để thu hồi quyền trước.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

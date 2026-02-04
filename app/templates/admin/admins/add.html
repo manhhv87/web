@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Cấp quyền Admin - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.list_admins') }}">Quản lý Admin</a></li>
+                <li class="breadcrumb-item active">Cấp quyền</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-shield-plus me-2"></i>Cấp quyền Admin</h2>
+        <p class="text-muted">Gán vai trò admin cho người dùng trong hệ thống.</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-plus me-2"></i>Thông tin cấp quyền
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.add_admin') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <!-- Chọn người dùng -->
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">Người dùng <span class="text-danger">*</span></label>
+                        <select class="form-select" id="user_id" name="user_id" required>
+                            <option value="">-- Chọn người dùng --</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}"
+                                {% if request.args.get('user_id')|int == user.id %}selected{% endif %}
+                                data-org-unit="{{ user.organization_unit_id or '' }}"
+                                data-division="{{ user.division_id or '' }}"
+                                data-roles="{{ roles_by_user.get(user.id, []) | join(',') }}">
+                                {{ user.full_name }} ({{ user.email }})
+                                {% if user.is_admin %}- {{ user.admin_level_display }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Chọn người dùng cần cấp quyền admin.</div>
+                    </div>
+
+                    <!-- Chọn cấp admin -->
+                    <div class="mb-3">
+                        <label for="role_level" class="form-label">Cấp Admin <span class="text-danger">*</span></label>
+                        <select class="form-select" id="role_level" name="role_level" required>
+                            <option value="">-- Chọn cấp admin --</option>
+                            {% for level, display in assignable_levels %}
+                            <option value="{{ level }}">{{ display }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Chọn cấp admin muốn gán.</div>
+                    </div>
+
+                    <!-- Chọn Khoa (cho Admin Khoa) -->
+                    <div class="mb-3" id="org_unit_group" style="display: none;">
+                        <label for="organization_unit_id" class="form-label">Khoa <span class="text-danger">*</span></label>
+                        <select class="form-select" id="organization_unit_id" name="organization_unit_id">
+                            <option value="">-- Chọn Khoa --</option>
+                            {% for org in org_units %}
+                            {% if org.unit_type == 'faculty' %}
+                            <option value="{{ org.id }}">{{ org.name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Chọn Khoa mà admin này sẽ quản lý.</div>
+                    </div>
+
+                    <!-- Chọn Bộ môn (cho Admin Bộ môn) -->
+                    <div class="mb-3" id="division_group" style="display: none;">
+                        <label for="division_id" class="form-label">Bộ môn <span class="text-danger">*</span></label>
+                        <select class="form-select" id="division_id" name="division_id">
+                            <option value="">-- Chọn Bộ môn --</option>
+                            {% for div in divisions %}
+                            <option value="{{ div.id }}" data-org-unit="{{ div.organization_unit_id }}">
+                                {{ div.name }} ({{ div.organization_unit.name }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Chọn Bộ môn mà admin này sẽ quản lý.</div>
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Ghi chú</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"
+                            placeholder="Ghi chú về việc cấp quyền (tùy chọn)"></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.list_admins') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>Cấp quyền
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Hướng dẫn
+            </div>
+            <div class="card-body">
+                <h6>Quyền hạn theo cấp:</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <span class="badge bg-warning text-dark">Admin Khoa</span>
+                        <ul class="small text-muted mt-1">
+                            <li>Quản lý người dùng trong Khoa</li>
+                            <li>Duyệt công trình sau Bộ môn</li>
+                            <li>Gán quyền Admin Bộ môn</li>
+                        </ul>
+                    </li>
+                    <li class="mb-2">
+                        <span class="badge bg-info">Admin Bộ môn</span>
+                        <ul class="small text-muted mt-1">
+                            <li>Quản lý người dùng trong Bộ môn</li>
+                            <li>Xác nhận công trình ban đầu</li>
+                        </ul>
+                    </li>
+                </ul>
+                <hr>
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-lightbulb me-1"></i>
+                    Một người có thể được gán nhiều vai trò. VD: Vừa là Admin Khoa CNTT, vừa là Admin BM CNPM.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleLevelSelect = document.getElementById('role_level');
+    const orgUnitGroup = document.getElementById('org_unit_group');
+    const divisionGroup = document.getElementById('division_group');
+    const orgUnitSelect = document.getElementById('organization_unit_id');
+    const divisionSelect = document.getElementById('division_id');
+    const userSelect = document.getElementById('user_id');
+
+    const orgUnitOptions = Array.from(orgUnitSelect.options).filter(opt => opt.value !== '');
+    const divisionOptions = Array.from(divisionSelect.options).filter(opt => opt.value !== '');
+    const userOptions = Array.from(userSelect.options).filter(opt => opt.value !== '');
+
+    function setOptionVisible(option, visible) {
+        option.hidden = !visible;
+        option.style.display = visible ? '' : 'none';
+    }
+
+    function getSelectedUserScope() {
+        const selectedOption = userSelect.options[userSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            return { orgUnitId: '', divisionId: '' };
+        }
+        return {
+            orgUnitId: selectedOption.dataset.orgUnit || '',
+            divisionId: selectedOption.dataset.division || '',
+        };
+    }
+
+    function divisionMatchesOrg(option, orgUnitId, userDivisionId) {
+        if (userDivisionId) {
+            return option.value === userDivisionId;
+        }
+        const optionOrgUnitId = option.dataset.orgUnit || '';
+        return !orgUnitId || optionOrgUnitId === orgUnitId;
+    }
+
+    function userMatches(option, orgUnitId, divisionId) {
+        const optionOrgUnitId = option.dataset.orgUnit || '';
+        const optionDivisionId = option.dataset.division || '';
+
+        if (divisionId) {
+            return optionDivisionId === divisionId;
+        }
+        if (orgUnitId) {
+            return optionOrgUnitId === orgUnitId;
+        }
+        return true;
+    }
+
+    function updateRoleOptions() {
+        const selectedOption = userSelect.options[userSelect.selectedIndex];
+        const rolesRaw = selectedOption?.dataset?.roles || '';
+        const assignedRoles = rolesRaw ? rolesRaw.split(',').map(role => role.trim()).filter(Boolean) : [];
+        const roleOptions = Array.from(roleLevelSelect.options).filter(opt => opt.value !== '');
+
+        let firstVisible = '';
+        roleOptions.forEach(option => {
+            const shouldHide = assignedRoles.includes(option.value);
+            setOptionVisible(option, !shouldHide);
+            if (!shouldHide && !firstVisible) {
+                firstVisible = option.value;
+            }
+        });
+
+        if (roleLevelSelect.value && assignedRoles.includes(roleLevelSelect.value)) {
+            roleLevelSelect.value = firstVisible;
+        }
+        if (!roleLevelSelect.value && firstVisible) {
+            roleLevelSelect.value = firstVisible;
+        }
+    }
+
+    function syncOrgUnitFromDivision() {
+        if (!divisionSelect.value) return;
+        const selectedDivision = divisionSelect.options[divisionSelect.selectedIndex];
+        const divisionOrgUnitId = selectedDivision.dataset.orgUnit || '';
+        if (divisionOrgUnitId) {
+            orgUnitSelect.value = divisionOrgUnitId;
+        }
+    }
+
+    function updateOrgUnits() {
+        const { orgUnitId } = getSelectedUserScope();
+        const previousOrgUnitId = orgUnitSelect.value || '';
+        let previousStillVisible = false;
+
+        orgUnitOptions.forEach(option => {
+            const visible = !orgUnitId || option.value === orgUnitId;
+            setOptionVisible(option, visible);
+            if (visible && option.value === previousOrgUnitId) {
+                previousStillVisible = true;
+            }
+        });
+
+        if (orgUnitId) {
+            orgUnitSelect.value = orgUnitId;
+        } else if (previousOrgUnitId && !previousStillVisible) {
+            orgUnitSelect.value = '';
+        }
+    }
+
+    function updateDivisions() {
+        const orgUnitId = orgUnitSelect.value || '';
+        const { divisionId: userDivisionId } = getSelectedUserScope();
+        const previousDivisionId = divisionSelect.value || '';
+        let previousStillVisible = false;
+
+        divisionOptions.forEach(option => {
+            const visible = divisionMatchesOrg(option, orgUnitId, userDivisionId);
+            setOptionVisible(option, visible);
+            if (visible && option.value === previousDivisionId) {
+                previousStillVisible = true;
+            }
+        });
+
+        if (userDivisionId) {
+            divisionSelect.value = userDivisionId;
+        } else if (previousDivisionId && !previousStillVisible) {
+            divisionSelect.value = '';
+        }
+    }
+
+    function updateUsers() {
+        const orgUnitId = orgUnitSelect.value || '';
+        const divisionId = divisionSelect.value || '';
+        const previousUserId = userSelect.value || '';
+        let previousStillVisible = false;
+
+        userOptions.forEach(option => {
+            const visible = userMatches(option, orgUnitId, divisionId);
+            setOptionVisible(option, visible);
+            if (visible && option.value === previousUserId) {
+                previousStillVisible = true;
+            }
+        });
+
+        if (previousUserId && !previousStillVisible) {
+            userSelect.value = '';
+        }
+    }
+
+    function updateAll() {
+        updateRoleOptions();
+        updateOrgUnits();
+        updateDivisions();
+        updateUsers();
+    }
+
+    // Show/hide scope fields based on role level
+    roleLevelSelect.addEventListener('change', function() {
+        const level = this.value;
+        orgUnitGroup.style.display = (level === 'faculty') ? 'block' : 'none';
+        divisionGroup.style.display = (level === 'department') ? 'block' : 'none';
+
+        // Reset selections when scope is not applicable
+        if (level !== 'department') {
+            divisionSelect.value = '';
+        }
+        if (level !== 'faculty' && level !== 'department') {
+            orgUnitSelect.value = '';
+        }
+
+        updateAll();
+    });
+
+    // Cascade: org unit -> divisions -> users
+    orgUnitSelect.addEventListener('change', function() {
+        updateDivisions();
+        updateUsers();
+    });
+
+    // Cascade: division -> org unit -> users
+    divisionSelect.addEventListener('change', function() {
+        syncOrgUnitFromDivision();
+        updateDivisions();
+        updateUsers();
+    });
+
+    // Auto-select user's org unit and division when user changes
+    userSelect.addEventListener('change', function() {
+        const { orgUnitId: userOrgUnit, divisionId: userDivision } = getSelectedUserScope();
+
+        if (userOrgUnit) orgUnitSelect.value = userOrgUnit;
+        if (userDivision) divisionSelect.value = userDivision;
+
+        syncOrgUnitFromDivision();
+        updateAll();
+    });
+
+    // Trigger initial state
+    updateRoleOptions();
+    roleLevelSelect.dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}

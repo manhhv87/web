@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Thêm' if action == 'add' else 'Sửa' }} hoạt động KHCN - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('activities.list_activities') }}">Hoạt động KHCN
+                        khác</a></li>
+                <li class="breadcrumb-item active">{{ 'Thêm mới' if action == 'add' else 'Chỉnh sửa' }}</li>
+            </ol>
+        </nav>
+
+        <h3 class="mb-4">
+            <i class="bi bi-{% if action == 'add' %}plus-lg{% else %}pencil{% endif %} me-2"></i>
+            {{ 'Thêm hoạt động KHCN mới' if action == 'add' else 'Sửa hoạt động KHCN' }}
+        </h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <!-- Thông tin cơ bản -->
+                    <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>Thông tin cơ bản</h5>
+
+                    <div class="mb-3">
+                        <label for="activity_type" class="form-label">Loại hoạt động <span
+                                class="text-danger">*</span></label>
+                        <select class="form-select" id="activity_type" name="activity_type" required
+                            onchange="updateQuantityLabel()">
+                            <option value="">-- Chọn loại hoạt động --</option>
+                            {% for val, label in type_choices %}
+                            <option value="{{ val }}" {% if activity and activity.activity_type==val %}selected{% endif
+                                %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label" id="titleLabel">Tên/Mô tả hoạt động</label>
+                        <input type="text" class="form-control" id="title" name="title"
+                            value="{{ activity.title if activity else '' }}"
+                            placeholder="VD: Hướng dẫn nhóm SV Nguyễn Văn A nghiên cứu về AI">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="year" class="form-label">Năm <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="year" name="year" min="2000"
+                                max="{{ current_year + 1 }}" value="{{ activity.year if activity else current_year }}"
+                                required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="quantity" class="form-label" id="quantity_label">Số lượng <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" max="100"
+                                value="{{ activity.quantity if activity else 1 }}" required>
+                            <small class="text-muted" id="quantity_hint">Nhập số nhóm/đội/sản phẩm</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Giờ ước tính</label>
+                            <input type="text" class="form-control" id="estimated_hours" readonly value="0">
+                        </div>
+                    </div>
+
+                    <!-- Chi tiết -->
+                    <h5 class="mb-3 mt-4"><i class="bi bi-card-text me-2"></i>Chi tiết</h5>
+
+                    <div class="mb-3" id="studentNamesField">
+                        <label for="student_names" class="form-label" id="studentNamesLabel">Tên sinh viên</label>
+                        <textarea class="form-control" id="student_names" name="student_names" rows="2"
+                            placeholder="Danh sách tên sinh viên được hướng dẫn">{{ activity.student_names if activity else '' }}</textarea>
+                    </div>
+
+                    <div class="mb-3" id="eventNameField">
+                        <label for="event_name" class="form-label" id="eventNameLabel">Tên sự kiện/Cuộc thi</label>
+                        <input type="text" class="form-control" id="event_name" name="event_name"
+                            value="{{ activity.event_name if activity else '' }}"
+                            placeholder="VD: Hội nghị SV NCKH cấp trường 2024">
+                    </div>
+
+                    <div class="mb-3" id="achievementField">
+                        <label for="achievement" class="form-label">Kết quả/Giải thưởng (nếu có)</label>
+                        <input type="text" class="form-control" id="achievement" name="achievement"
+                            value="{{ activity.achievement if activity else '' }}"
+                            placeholder="VD: Giải Nhất, Giải Nhì...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Ghi chú</label>
+                        <textarea class="form-control" id="notes" name="notes"
+                            rows="2">{{ activity.notes if activity else '' }}</textarea>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('activities.list_activities') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
+                                <i class="bi bi-save me-1"></i>Lưu nháp
+                            </button>
+                            <button type="submit" name="action" value="submit" class="btn btn-success">
+                                <i class="bi bi-send me-1"></i>Gửi duyệt
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block text-end">
+                        <i class="bi bi-info-circle me-1"></i>
+                        "Lưu nháp" để lưu và chỉnh sửa sau. "Gửi duyệt" để gửi cho Admin xem xét.
+                    </small>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hướng dẫn bên phải -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightbulb me-2"></i>Hướng dẫn
+            </div>
+            <div class="card-body">
+                <h6>Số giờ theo loại:</h6>
+                <ul class="small">
+                    <li><strong>HD SV NCKH cấp trường:</strong> 75 giờ/nhóm</li>
+                    <li><strong>HD SV NCKH cấp khoa:</strong> 30 giờ/nhóm</li>
+                    <li><strong>Huấn luyện đội tuyển:</strong> 75 giờ/đội</li>
+                    <li><strong>Sản phẩm triển lãm:</strong> 45 giờ/sản phẩm</li>
+                </ul>
+
+                <div class="alert alert-warning small mt-3">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Giới hạn:</strong> Tối đa 250 giờ/năm cho toàn bộ mục này (theo Quy chế).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const hoursPerType = {
+        'student_research_university': 75,
+        'student_research_faculty': 30,
+        'team_training': 75,
+        'exhibition_product': 45
+    };
+
+    const unitPerType = {
+        'student_research_university': 'nhóm SV',
+        'student_research_faculty': 'nhóm SV',
+        'team_training': 'đội tuyển',
+        'exhibition_product': 'sản phẩm'
+    };
+
+    function updateQuantityLabel() {
+        const type = document.getElementById('activity_type').value;
+        const label = document.getElementById('quantity_label');
+        const hint = document.getElementById('quantity_hint');
+
+        if (type && unitPerType[type]) {
+            label.innerHTML = 'Số ' + unitPerType[type] + ' <span class="text-danger">*</span>';
+            hint.textContent = 'Nhập số ' + unitPerType[type];
+        } else {
+            label.innerHTML = 'Số lượng <span class="text-danger">*</span>';
+            hint.textContent = 'Nhập số nhóm/đội/sản phẩm';
+        }
+
+        updateDetailFields(type);
+        calculateHours();
+    }
+
+    function updateDetailFields(type) {
+        const titleLabel = document.getElementById('titleLabel');
+        const titleInput = document.getElementById('title');
+        const studentField = document.getElementById('studentNamesField');
+        const eventField = document.getElementById('eventNameField');
+        const achievementField = document.getElementById('achievementField');
+        const studentLabel = document.getElementById('studentNamesLabel');
+        const eventLabel = document.getElementById('eventNameLabel');
+        const eventInput = document.getElementById('event_name');
+
+        // Reset: show all, title not required, event not required
+        studentField.style.display = 'block';
+        eventField.style.display = 'block';
+        achievementField.style.display = 'block';
+        titleInput.required = false;
+        eventInput.required = false;
+
+        if (type === 'student_research_university' || type === 'student_research_faculty') {
+            titleLabel.innerHTML = 'Tên/Mô tả hoạt động';
+            titleInput.required = false;
+            titleInput.placeholder = 'VD: Hướng dẫn nhóm SV Nguyễn Văn A nghiên cứu về AI';
+            studentLabel.textContent = 'Tên sinh viên trong nhóm';
+            eventLabel.innerHTML = 'Tên hội nghị SV NCKH';
+            eventInput.placeholder = 'VD: Hội nghị SV NCKH cấp trường 2024';
+        } else if (type === 'team_training') {
+            titleLabel.innerHTML = 'Tên/Mô tả hoạt động';
+            titleInput.required = false;
+            titleInput.placeholder = 'VD: Huấn luyện đội tuyển Olympic Tin học';
+            studentLabel.textContent = 'Thành viên đội tuyển';
+            eventLabel.innerHTML = 'Tên cuộc thi <span class="text-danger">*</span>';
+            eventInput.placeholder = 'VD: Olympic Tin học SV toàn quốc 2024';
+            eventInput.required = true;
+        } else if (type === 'exhibition_product') {
+            titleLabel.innerHTML = 'Tên sản phẩm KHCN';
+            titleInput.required = false;
+            titleInput.placeholder = 'VD: Hệ thống IoT giám sát môi trường';
+            studentField.style.display = 'none';
+            eventLabel.innerHTML = 'Tên hội chợ/triển lãm/cuộc thi <span class="text-danger">*</span>';
+            eventInput.placeholder = 'VD: Triển lãm KHCN quốc gia 2024';
+            eventInput.required = true;
+            achievementField.style.display = 'none';
+        } else {
+            titleLabel.innerHTML = 'Tên/Mô tả hoạt động';
+            titleInput.placeholder = 'VD: Hướng dẫn nhóm SV Nguyễn Văn A nghiên cứu về AI';
+            studentLabel.textContent = 'Tên sinh viên';
+            eventLabel.innerHTML = 'Tên sự kiện/Cuộc thi';
+            eventInput.placeholder = 'VD: Hội nghị SV NCKH cấp trường 2024';
+        }
+    }
+
+    function calculateHours() {
+        const type = document.getElementById('activity_type').value;
+        const quantity = parseInt(document.getElementById('quantity').value) || 0;
+        const hoursInput = document.getElementById('estimated_hours');
+
+        if (type && hoursPerType[type]) {
+            const hours = hoursPerType[type] * quantity;
+            hoursInput.value = hours + ' giờ';
+        } else {
+            hoursInput.value = '0 giờ';
+        }
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        updateQuantityLabel();
+
+        document.getElementById('quantity').addEventListener('input', calculateHours);
+        document.getElementById('activity_type').addEventListener('change', updateQuantityLabel);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}{{ publication.title[:50] }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.list_all_publications') }}">Ấn phẩm</a></li>
+                <li class="breadcrumb-item active">Chi tiết</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-file-earmark-text me-2"></i>Chi tiết ấn phẩm</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Thông tin ấn phẩm</span>
+                {% if publication.is_approved %}
+                <span class="badge bg-success">Đã duyệt</span>
+                {% elif publication.approval_status == 'returned' %}
+                <span class="badge bg-danger">?? trả lại</span>
+                {% elif publication.approval_status == 'department_approved' %}
+                <span class="badge bg-info text-dark">Bộ môn đã xác nhận</span>
+                {% elif publication.approval_status == 'faculty_approved' %}
+                <span class="badge bg-primary">Khoa đã duyệt</span>
+                {% else %}
+                <span class="badge bg-warning">Chưa duyệt</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h5>{{ publication.title }}</h5>
+                <table class="table table-sm mt-3">
+                    <tr>
+                        <th width="200">Loại ấn phẩm:</th>
+                        <td>{{ publication.publication_type_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Năm:</th>
+                        <td>{{ publication.year }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tác giả:</th>
+                        <td>{{ publication.author.full_name }} ({{ publication.author.email }})</td>
+                    </tr>
+                    {% if publication.all_authors %}
+                    <tr>
+                        <th>Đồng tác giả:</th>
+                        <td>{{ publication.all_authors }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Vai trò:</th>
+                        <td>{{ publication.author_role_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tổng số tác giả:</th>
+                        <td>{{ publication.total_authors }}</td>
+                    </tr>
+                    {% if publication.venue_name %}
+                    <tr>
+                        <th>Tạp chí/Hội nghị:</th>
+                        <td>{{ publication.venue_name }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.quartile %}
+                    <tr>
+                        <th>Quartile:</th>
+                        <td><span class="badge bg-info">{{ publication.quartile }}</span></td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.doi %}
+                    <tr>
+                        <th>DOI:</th>
+                        <td>
+                            <a href="https://doi.org/{{ publication.doi }}" target="_blank">
+                                {{ publication.doi }} <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.url %}
+                    <tr>
+                        <th>URL:</th>
+                        <td>
+                            <a href="{{ publication.url }}" target="_blank">
+                                {{ publication.url[:60] }}{% if publication.url|length > 60 %}...{% endif %}
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.issn %}
+                    <tr>
+                        <th>ISSN:</th>
+                        <td>{{ publication.issn }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.isbn %}
+                    <tr>
+                        <th>ISBN:</th>
+                        <td>{{ publication.isbn }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.publisher %}
+                    <tr>
+                        <th>Nhà xuất bản:</th>
+                        <td>{{ publication.publisher }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.notes %}
+                    <tr>
+                        <th>Ghi chú:</th>
+                        <td>{{ publication.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+
+                {% if publication.approval_status == 'returned' and publication.rejection_reason %}
+                <div class="alert alert-danger mt-3">
+                    <strong><i class="bi bi-exclamation-triangle me-2"></i>Lý do trả lại:</strong>
+                    <p class="mb-0 mt-2">{{ publication.rejection_reason }}</p>
+                    {% if publication.returned_at %}
+                    <small class="text-muted">Trả lại lúc: {{ publication.returned_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Giờ quy đổi</div>
+            <div class="card-body text-center">
+                <h2 class="text-primary">{{ "%.1f"|format(publication.author_hours) }}</h2>
+                <p class="text-muted">giờ (của tác giả)</p>
+                <hr>
+                <p class="mb-0">Giờ cơ bản: <strong>{{ "%.1f"|format(publication.base_hours) }}</strong></p>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Hành động</div>
+            <div class="card-body">
+                {% if not publication.is_approved %}
+                <form action="{{ url_for('admin.approve_publication', pub_id=publication.id) }}" method="post"
+                    class="mb-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check me-2"></i>Duyệt ấn phẩm
+                    </button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('admin.reject_publication', pub_id=publication.id) }}" method="post"
+                    class="mb-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-x me-2"></i>Hủy duyệt
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{{ url_for('admin.edit_publication', pub_id=publication.id) }}"
+                    class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-pencil me-2"></i>Sửa
+                </a>
+                <form action="{{ url_for('admin.delete_publication', pub_id=publication.id) }}" method="post"
+                    onsubmit="return confirm('Xóa ấn phẩm này?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash me-2"></i>Xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{{ url_for('admin.list_all_publications') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+</div>
+{% endblock %}

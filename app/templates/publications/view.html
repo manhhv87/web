@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% from "_approval_progress.html" import approval_steps %}
+
+{% block title %}{{ publication.title[:50] }}... - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Chi tiết ấn phẩm</h5>
+                <div>
+                    <a href="{{ url_for('publications.edit_publication', pub_id=publication.id) }}"
+                        class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i>Sửa
+                    </a>
+                    <a href="{{ url_for('publications.list_publications') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Quay lại
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <h4 class="mb-3">{{ publication.title }}</h4>
+
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 180px;">Loại ấn phẩm</th>
+                        <td>{{ publication.publication_type_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Năm</th>
+                        <td>{{ publication.year }}</td>
+                    </tr>
+                    {% if publication.venue_name %}
+                    <tr>
+                        <th>
+                            {% if publication.publication_type.startswith('journal_') %}Tạp chí
+                            {% elif publication.publication_type.startswith('conference_') %}Hội nghị
+                            {% elif publication.publication_type.startswith('patent') or publication.publication_type == 'utility_solution' %}Nơi cấp bằng
+                            {% elif publication.publication_type.startswith('award_') %}Giải thưởng
+                            {% elif publication.publication_type.startswith('exhibition_') %}Triển lãm
+                            {% elif publication.publication_type.startswith('book_chapter') %}Tên sách
+                            {% else %}NXB/Nơi công bố
+                            {% endif %}
+                        </th>
+                        <td>{{ publication.venue_name }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.quartile %}
+                    <tr>
+                        <th>Quartile</th>
+                        <td>
+                            <span
+                                class="badge bg-{% if publication.quartile == 'Q1' %}success{% elif publication.quartile == 'Q2' %}primary{% elif publication.quartile == 'Q3' %}warning{% else %}secondary{% endif %} fs-6">
+                                {{ publication.quartile }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.domestic_points %}
+                    <tr>
+                        <th>Điểm HĐGSNN</th>
+                        <td>{{ publication.domestic_points }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.all_authors %}
+                    <tr>
+                        <th>Tác giả</th>
+                        <td>{{ publication.all_authors }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Tổng số tác giả</th>
+                        <td>{{ publication.total_authors }}</td>
+                    </tr>
+                    <tr>
+                        <th>Vai trò của bản thân</th>
+                        <td>{{ publication.author_role_display }}</td>
+                    </tr>
+                    {% if publication.contribution_percentage %}
+                    <tr>
+                        <th>% đóng góp</th>
+                        <td>{{ publication.contribution_percentage }}%</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.patent_stage %}
+                    <tr>
+                        <th>Giai đoạn</th>
+                        <td>
+                            {% if publication.patent_stage == 'stage_1' %}
+                            <span class="badge bg-warning text-dark">Giai đoạn 1</span>
+                            Đơn đăng ký được chấp nhận (1/3 giờ)
+                            {% elif publication.patent_stage == 'stage_2' %}
+                            <span class="badge bg-success">Giai đoạn 2</span>
+                            Được cấp bằng văn bản (2/3 giờ)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.patent_number %}
+                    <tr>
+                        <th>{% if publication.patent_stage == 'stage_2' %}Số bằng{% else %}Số đơn{% endif %}</th>
+                        <td>{{ publication.patent_number }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.publisher %}
+                    <tr>
+                        <th>Nhà xuất bản</th>
+                        <td>{{ publication.publisher }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.is_republished %}
+                    <tr>
+                        <th>Tai ban</th>
+                        <td><span class="badge bg-warning">Sách tái bản/biên dịch (1/3 giờ)</span></td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.doi %}
+                    <tr>
+                        <th>DOI</th>
+                        <td>
+                            <a href="https://doi.org/{{ publication.doi }}" target="_blank">
+                                {{ publication.doi }} <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.url %}
+                    <tr>
+                        <th>URL</th>
+                        <td>
+                            <a href="{{ publication.url }}" target="_blank">
+                                {{ publication.url[:50] }}{% if publication.url|length > 50 %}...{% endif %}
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.issn %}
+                    <tr>
+                        <th>ISSN</th>
+                        <td>{{ publication.issn }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.isbn %}
+                    <tr>
+                        <th>ISBN</th>
+                        <td>{{ publication.isbn }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if publication.notes %}
+                    <tr>
+                        <th>Ghi chú</th>
+                        <td>{{ publication.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card bg-light">
+            <div class="card-header">
+                <i class="bi bi-calculator me-2"></i>Giờ nghiên cứu
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <small class="text-muted">Giờ cơ bản</small>
+                    <div class="display-6">{{ "%.1f"|format(publication.base_hours) }}</div>
+                </div>
+                <hr>
+                <div>
+                    <small class="text-muted">Giờ của bạn (sau khi tính % tác giả)</small>
+                    <div class="display-4 text-primary">{{ "%.1f"|format(publication.author_hours) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-shield-check me-2"></i>Tiến trình phê duyệt
+            </div>
+            <div class="card-body">
+                {{ approval_steps(publication) }}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-clock-history me-2"></i>Thông tin hệ thống
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <div>Tạo: {{ publication.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                    <div>Cập nhật: {{ publication.updated_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

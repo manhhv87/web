@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% from "_approval_progress.html" import approval_badge %}
+
+{% block title %}Danh sách ấn phẩm - {{ app_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .pub-table thead th {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 12px 14px;
+        border: none;
+    }
+</style>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3><i class="bi bi-file-earmark-text me-2"></i>Danh sách ấn phẩm</h3>
+            <a href="{{ url_for('publications.add_publication') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>Thêm ấn phẩm
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label">Loại ấn phẩm</label>
+                        <select name="type" class="form-select">
+                            <option value="">-- Tất cả --</option>
+                            {% for value, label in pub_type_choices %}
+                            <option value="{{ value }}" {% if selected_type==value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            <option value="">-- Tất cả --</option>
+                            <option value="approved" {% if selected_status=='approved' %}selected{% endif %}>Đã duyệt</option>
+                            <option value="pending" {% if selected_status=='pending' %}selected{% endif %}>Chờ duyệt</option>
+                            <option value="returned" {% if selected_status=='returned' %}selected{% endif %}>Trả lại</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label">Năm</label>
+                        <select name="year" class="form-select">
+                            <option value="">-- Tất cả --</option>
+                            {% for year in years %}
+                            <option value="{{ year }}" {% if selected_year==year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <div class="d-flex gap-2 justify-content-lg-end">
+                            <button type="submit" class="btn btn-primary flex-grow-1 flex-lg-grow-0">
+                                <i class="bi bi-search me-1"></i>Lọc
+                            </button>
+                            <a href="{{ url_for('publications.list_publications') }}" class="btn btn-outline-secondary flex-grow-1 flex-lg-grow-0">
+                                Xóa bộ lọc
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Thông báo ấn phẩm bị trả lại -->
+        {% set returned_pubs = publications|selectattr('approval_status', 'equalto', 'returned')|list %}
+        {% if returned_pubs %}
+        <div class="alert alert-danger mb-4">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Có {{ returned_pubs|length }} ấn phẩm bị trả lại</h5>
+            <p class="mb-2">Các ấn phẩm sau cần được chỉnh sửa theo yêu cầu của Admin:</p>
+            <ul class="mb-0">
+                {% for pub in returned_pubs %}
+                <li>
+                    <strong>{{ pub.title[:50] }}{% if pub.title|length > 50 %}...{% endif %}</strong>
+                    {% if pub.rejection_reason %}
+                    <br><small class="text-danger"><i class="bi bi-arrow-return-right me-1"></i>Lý do: {{ pub.rejection_reason }}</small>
+                    {% endif %}
+                    <a href="{{ url_for('publications.edit_publication', pub_id=pub.id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="bi bi-pencil me-1"></i>Sửa
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Publications table -->
+        <div class="card">
+            <div class="card-body">
+                {% if publications %}
+                <div class="table-responsive">
+                    <table class="table table-hover pub-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">Năm</th>
+                                <th>Tên ấn phẩm</th>
+                                <th>Loại</th>
+                                <th>Vai trò</th>
+                                <th class="text-end" style="white-space:nowrap">Giờ cơ bản</th>
+                                <th class="text-end" style="white-space:nowrap">Giờ tác giả</th>
+                                <th>Trạng thái</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pub in publications %}
+                            <tr>
+                                <td><strong>{{ pub.year }}</strong></td>
+                                <td>
+                                    <a href="{{ url_for('publications.view_publication', pub_id=pub.id) }}">
+                                        {{ pub.title[:70] }}{% if pub.title|length > 70 %}...{% endif %}
+                                    </a>
+                                    {% if pub.quartile %}
+                                    <span
+                                        class="badge bg-{% if pub.quartile == 'Q1' %}success{% elif pub.quartile == 'Q2' %}primary{% elif pub.quartile == 'Q3' %}warning{% else %}secondary{% endif %}">
+                                        {{ pub.quartile }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ pub.publication_type_display }}</small></td>
+                                <td><small>{{ pub.author_role_display }}</small></td>
+                                <td class="text-end">{{ "%.1f"|format(pub.base_hours) }}</td>
+                                <td class="text-end"><strong>{{ "%.1f"|format(pub.author_hours) }}</strong></td>
+                                <td>{{ approval_badge(pub) }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if pub.can_edit %}
+                                        <a href="{{ url_for('publications.edit_publication', pub_id=pub.id) }}"
+                                            class="btn btn-outline-primary" title="Sửa">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger"
+                                            onclick="confirmDelete({{ pub.id }}, '{{ pub.title[:30] }}')" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        {% else %}
+                                        <a href="{{ url_for('publications.view_publication', pub_id=pub.id) }}"
+                                            class="btn btn-outline-secondary" title="Xem">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="5" class="text-end"><strong>Tổng cộng:</strong></td>
+                                <td class="text-end">
+                                    <strong>{{ "%.1f"|format(publications|sum(attribute='author_hours')) }}</strong>
+                                </td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center my-5">
+                    Không có ấn phẩm nào.
+                    <a href="{{ url_for('publications.add_publication') }}">Thêm ấn phẩm đầu tiên</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xác nhận xóa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa ấn phẩm: <strong id="deletePubTitle"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(pubId, title) {
+        document.getElementById('deletePubTitle').textContent = title + '...';
+        document.getElementById('deleteForm').action = '/publications/delete/' + pubId;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

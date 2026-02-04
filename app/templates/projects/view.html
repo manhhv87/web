@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% from "_approval_progress.html" import approval_steps %}
+
+{% block title %}{{ project.title[:50] }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('projects.list_projects') }}">Đề tài, dự án</a></li>
+                <li class="breadcrumb-item active">Chi tiết</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-folder2-open me-2"></i>Chi tiết đề tài</span>
+                <div>
+                    <a href="{{ url_for('projects.edit_project', proj_id=project.id) }}"
+                        class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i>Sửa
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <h4 class="mb-3">{{ project.title }}</h4>
+
+                <table class="table table-borderless">
+                    <tbody>
+                        {% if project.project_code %}
+                        <tr>
+                            <td class="text-muted" style="width: 200px;">Mã đề tài:</td>
+                            <td><strong>{{ project.project_code }}</strong></td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-muted">Cấp đề tài:</td>
+                            <td>
+                                <span
+                                    class="badge bg-{% if project.project_level == 'national' %}danger{% elif project.project_level == 'vnu_ministry' %}warning{% elif project.project_level == 'university' %}info{% else %}secondary{% endif %}">
+                                    {{ project.project_level_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Thời gian thực hiện:</td>
+                            <td>
+                                {{ project.start_year }}{% if project.end_year != project.start_year %} - {{ project.end_year }}{% endif %}
+                                ({{ [1, project.end_year - project.start_year]|max }} năm)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Trạng thái:</td>
+                            <td>
+                                {% if project.status == 'completed' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>{{
+                                    project.status_display }}</span>
+                                {% elif project.status == 'extended' %}
+                                <span class="badge bg-warning"><i class="bi bi-exclamation-triangle me-1"></i>{{
+                                    project.status_display }}</span>
+                                {% else %}
+                                <span class="badge bg-info"><i class="bi bi-arrow-repeat me-1"></i>{{
+                                    project.status_display }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Vai trò của bạn:</td>
+                            <td>
+                                <span
+                                    class="badge bg-{% if project.role == 'leader' %}success{% elif project.role == 'secretary' %}primary{% else %}secondary{% endif %}">
+                                    {{ project.role_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Tổng số thành viên:</td>
+                            <td>{{ project.total_members }} người</td>
+                        </tr>
+                        {% if project.funding_agency %}
+                        <tr>
+                            <td class="text-muted">Cơ quan quản lý/Tài trợ:</td>
+                            <td>{{ project.funding_agency }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if project.project_level == 'cooperation' and project.funding_amount %}
+                        <tr>
+                            <td class="text-muted">Giá trị tài trợ:</td>
+                            <td><strong>{{ "%.2f"|format(project.funding_amount) }}</strong> tỷ đồng</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                {% if project.description %}
+                <h6 class="mt-4"><i class="bi bi-card-text me-2"></i>Mô tả</h6>
+                <p class="text-muted">{{ project.description }}</p>
+                {% endif %}
+
+                {% if project.notes %}
+                <h6 class="mt-4"><i class="bi bi-sticky me-2"></i>Ghi chú</h6>
+                <p class="text-muted">{{ project.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Giờ nghiên cứu của bạn -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-clock-history me-2"></i>Giờ nghiên cứu của bạn
+            </div>
+            <div class="card-body text-center">
+                {% if project.status == 'extended' %}
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Đề tài gia hạn không được tính giờ
+                </div>
+                <div class="display-4 text-muted">0</div>
+                {% else %}
+                <div class="display-4 text-primary">{{ "%.1f"|format(project.user_hours) }}</div>
+                <p class="text-muted mb-0">giờ tổng cộng (vai trò: {{ project.role_display }})</p>
+                {% if span_years > 1 %}
+                <hr class="my-2">
+                <div class="h5 text-info mb-0">{{ "%.1f"|format(project.user_hours_per_year) }} giờ/năm lịch</div>
+                <p class="text-muted small mb-0">
+                    Quy đổi cho {{ span_years }} năm lịch ({{ project.start_year }}, {{ project.end_year }})
+                </p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Chi tiết phân chia giờ -->
+        {% if project.status != 'extended' and hours_detail %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-pie-chart me-2"></i>Phân chia giờ theo vai trò
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td>Tổng giờ đề tài:</td>
+                            <td class="text-end"><strong>{{ "%.1f"|format(hours_detail.total_hours) }}</strong></td>
+                        </tr>
+                        <tr class="border-top">
+                            <td>
+                                <span class="badge bg-success me-1">CT</span> Chủ trì:
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(hours_detail.leader_hours) }} giờ</td>
+                        </tr>
+                        {% if hours_detail.secretary_hours > 0 %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-primary me-1">TK</span> Thư ký:
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(hours_detail.secretary_hours) }} giờ</td>
+                        </tr>
+                        {% endif %}
+                        {% if hours_detail.member_pool_hours > 0 %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary me-1">TV</span> Thành viên khác:
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(hours_detail.member_pool_hours) }} giờ <small
+                                    class="text-muted">(tổng)</small></td>
+                        </tr>
+                        {% if hours_detail.other_members_count > 0 %}
+                        <tr>
+                            <td class="ps-4 text-muted small">
+                                → Số TV khác: {{ hours_detail.other_members_count }} người
+                            </td>
+                            <td class="text-end text-muted small">
+                                Mỗi TV: {{ "%.1f"|format(hours_detail.member_each_hours) }} giờ
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                {% if project.role == 'member' and hours_detail.other_members_count > 0 %}
+                <div class="alert alert-info small mt-3 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Cách tính:</strong> {{ "%.1f"|format(hours_detail.member_pool_hours) }} giờ (tổng TV) ÷ {{
+                    hours_detail.other_members_count }} người = <strong>{{ "%.1f"|format(hours_detail.member_each_hours)
+                        }} giờ/người</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tiến trình phê duyệt -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-shield-check me-2"></i>Tiến trình phê duyệt
+            </div>
+            <div class="card-body">
+                {{ approval_steps(project) }}
+            </div>
+        </div>
+
+        <!-- Thông tin thêm -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Thông tin
+            </div>
+            <div class="card-body small">
+                <p class="mb-1">
+                    <strong>Ngày tạo:</strong> {{ project.created_at.strftime('%d/%m/%Y %H:%M') }}
+                </p>
+                {% if project.updated_at %}
+                <p class="mb-0">
+                    <strong>Cập nhật:</strong> {{ project.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Trang chu - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-8">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="bi bi-journal-richtext text-primary"></i>
+            </h1>
+            <h2 class="mb-3">HỆ THỐNG TÍNH GIỜ NGHIÊN CỨU KHOA HỌC</h2>
+            <p class="lead text-muted">
+                Theo Quy chế VNU-UET (Quyết định 2706/QĐ-ĐHCN ngày 21/11/2024)
+            </p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-file-earmark-plus display-4 text-primary mb-3"></i>
+                        <h5 class="card-title">Nhập ấn phẩm</h5>
+                        <p class="card-text text-muted">
+                            Nhập thông tin bài báo, hội nghị, sách, bằng sáng chế, giải thưởng...
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-calculator display-4 text-primary mb-3"></i>
+                        <h5 class="card-title">Tự động tính giờ</h5>
+                        <p class="card-text text-muted">
+                            Hệ thống tự động tính số giờ nghiên cứu theo đúng quy chế.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="bi bi-file-earmark-bar-graph display-4 text-primary mb-3"></i>
+                        <h5 class="card-title">Báo cáo tổng hợp</h5>
+                        <p class="card-text text-muted">
+                            Xuất báo cáo theo năm, theo loại ấn phẩm, xuất file CSV/TXT.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-5">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg me-3">
+                <i class="bi bi-person-plus me-2"></i>Đăng ký tài khoản
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Các loại ấn phẩm được hỗ trợ
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-journal-text text-primary me-2"></i>Bài báo khoa học</h6>
+                        <ul class="small text-muted">
+                            <li>Tạp chí WoS/Scopus (Q1-Q4): 1400-1800 giờ</li>
+                            <li>Tạp chí VNU đặc biệt: 900 giờ</li>
+                            <li>Tạp chí trong nước: 300-800 giờ</li>
+                        </ul>
+
+                        <h6><i class="bi bi-people text-primary me-2"></i>Hội nghị khoa học</h6>
+                        <ul class="small text-muted">
+                            <li>Hội nghị WoS/Scopus: 900 giờ</li>
+                            <li>Hội nghị quốc tế: 600 giờ</li>
+                            <li>Hội nghị quốc gia: 500 giờ</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-book text-primary me-2"></i>Sách, giáo trình</h6>
+                        <ul class="small text-muted">
+                            <li>Sách chuyên khảo: 1500-2700 giờ</li>
+                            <li>Giáo trình: 900-1800 giờ</li>
+                            <li>Chương sách: 900-1200 giờ</li>
+                        </ul>
+
+                        <h6><i class="bi bi-lightbulb text-primary me-2"></i>Sở hữu trí tuệ & Giải thưởng</h6>
+                        <ul class="small text-muted">
+                            <li>Bằng sáng chế: 1800-3000 giờ</li>
+                            <li>Giải pháp hữu ích: 1200 giờ</li>
+                            <li>Giải thưởng, triển lãm: 400-1800 giờ</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if action == 'add' %}Thêm Bộ môn{% else %}Sửa Bộ môn{% endif %} - {{ app_name }}
+{% endblock %}
+
+{% set data = form_data or {} %}
+
+{% block content %}
+<div class="row mt-4">
+  <div class="col-12">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.manage_divisions') }}">Bộ môn</a></li>
+        <li class="breadcrumb-item active">{% if action=='add' %}Thêm{% else %}Sửa{% endif %}</li>
+      </ol>
+    </nav>
+    <h2><i class="bi bi-building me-2"></i>{% if action=='add' %}Thêm Bộ môn{% else %}Sửa Bộ môn{% endif %}</h2>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Tên Bộ môn <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="name"
+                 value="{{ data.get('name', division.name if division else '') }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Mã</label>
+          <input type="text" class="form-control" name="code"
+                 value="{{ data.get('code', division.code if division else '') }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Khoa <span class="text-danger">*</span></label>
+          {% set current_ou_id = data.get('organization_unit_id', division.organization_unit_id if division else '') %}
+          <select class="form-select" name="organization_unit_id" required>
+            <option value="">-- Chọn Khoa --</option>
+            {% for ou in org_units %}
+              {% if ou.unit_type == 'faculty' %}
+              <option value="{{ ou.id }}" {% if current_ou_id == ou.id %}selected{% endif %}>
+                {{ ou.name }}{% if ou.code %} ({{ ou.code }}){% endif %}
+              </option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Mô tả</label>
+          <textarea class="form-control" name="description" rows="3">{{ data.get('description', division.description if division else '') }}</textarea>
+        </div>
+
+        <div class="col-12">
+          {% set active = data.get('is_active', division.is_active if division else True) %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">Hoạt động</label>
+          </div>
+        </div>
+
+        <div class="col-12 d-flex justify-content-between">
+          <a href="{{ url_for('admin.manage_divisions') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>Lưu
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

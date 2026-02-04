@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+{% from "_approval_progress.html" import approval_badge_sm %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        border-radius: 0;
+        padding: 16px 24px;
+        color: white;
+        margin-bottom: 20px;
+    }
+
+    .page-header h4 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .year-select {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 6px;
+        color: white;
+        padding: 4px 10px;
+        font-size: 0.85rem;
+        width: auto;
+        min-width: 75px;
+    }
+
+    .year-select:focus {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    .year-select option {
+        color: #333;
+    }
+
+    .pending-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        line-height: 1;
+        border-radius: 999px;
+        vertical-align: middle;
+    }
+
+    .pending-badge.is-zero {
+        opacity: 0.65;
+    }
+
+    .stat-box {
+        border-radius: 12px;
+        padding: 20px;
+        color: white;
+        height: 100%;
+    }
+
+    .stat-box.box-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .stat-box.box-success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .stat-box.box-info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-box.box-warning {
+        background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+    }
+
+    .stat-box .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.3;
+        position: absolute;
+        right: 16px;
+        top: 16px;
+    }
+
+    .stat-box .stat-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 500;
+        margin-bottom: 4px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-box .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+        color: white;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-box .stat-sub {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 6px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-clean {
+        border: none;
+        border-radius: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .card-clean .card-header {
+        background: #f8f9fa;
+        border-bottom: none;
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-radius: 0;
+    }
+
+    /* Colored card headers for recent items */
+    .card-clean .card-header.hdr-pub {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: #fff;
+        border-left: none;
+    }
+    .card-clean .card-header.hdr-pub i { color: #fff !important; }
+
+    .card-clean .card-header.hdr-proj {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: #fff;
+    }
+    .card-clean .card-header.hdr-proj i { color: #fff !important; }
+
+    .card-clean .card-header.hdr-act {
+        background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+        color: #fff;
+    }
+    .card-clean .card-header.hdr-act i { color: #fff !important; }
+
+    .card-clean .card-header.hdr-wos {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+    }
+    .card-clean .card-header.hdr-wos i { color: #fff !important; }
+
+    .card-clean .card-header.hdr-yearly {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+    }
+    .card-clean .card-header.hdr-yearly i { color: #fff !important; }
+    .card-clean .card-header.hdr-yearly a { color: rgba(255,255,255,0.85); }
+    .card-clean .card-header.hdr-yearly a:hover { color: #fff; }
+
+    .card-clean .card-body {
+        padding: 12px 16px;
+    }
+
+    .q-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .q-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        margin-right: 8px;
+    }
+
+    .q-badge.q1 {
+        background: #198754;
+        color: #fff;
+    }
+
+    .q-badge.q2 {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .q-badge.q3 {
+        background: #ffc107;
+        color: #000;
+    }
+
+    .q-badge.q4 {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .q-value {
+        font-weight: 700;
+        margin-left: auto;
+        min-width: 2ch;
+        text-align: right;
+    }
+
+    .tbl {
+        font-size: 0.88rem;
+        margin: 0;
+    }
+
+    .tbl thead th {
+        background: #f8f9fa;
+        padding: 10px 12px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #666;
+        border: none;
+    }
+
+    .tbl tbody td {
+        padding: 10px 12px;
+        border-color: #f0f0f0;
+        vertical-align: middle;
+    }
+
+    .tbl .row-active {
+        background: #f0f4ff;
+    }
+
+    .tbl .col-total {
+        color: #667eea;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .list-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .list-item:last-child {
+        border-bottom: none;
+    }
+
+    .list-item a {
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .list-item a:hover {
+        color: #667eea;
+    }
+
+    .list-item .meta {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 2px;
+    }
+
+    .list-item .hours {
+        font-weight: 700;
+        color: #667eea;
+    }
+</style>
+
+<!-- Header -->
+<div class="page-header mt-3">
+    <div class="d-flex justify-content-between align-items-center">
+        <h4 class="mb-0"><i class="bi bi-mortarboard-fill me-2"></i>Tổng kết nghiên cứu khoa học năm {{ selected_year }}</h4>
+        <select class="form-select form-select-sm year-select"
+            onchange="window.location.href='{{ url_for('main.dashboard') }}?year=' + this.value">
+            {% for year in available_years %}
+            <option value="{{ year }}" {% if year==selected_year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="stat-box box-primary position-relative">
+            <i class="bi bi-clock-history stat-icon"></i>
+            <div class="stat-label">Tổng giờ nghiên cứu</div>
+            <div class="stat-value">{{ "%.0f"|format(total_summary.total_hours) }}</div>
+            <div class="stat-sub">giờ quy đổi</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-box box-success position-relative">
+            <i class="bi bi-journal-richtext stat-icon"></i>
+            <div class="stat-label">Ấn phẩm khoa học</div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="stat-value">{{ summary.total_publications }}</div>
+                <span class="badge pending-badge {{ "bg-warning text-dark" if pending_publications > 0 else "bg-light text-muted" }} {% if pending_publications == 0 %}is-zero{% endif %}" title="Chờ duyệt">
+                    <i class="bi bi-hourglass-split"></i> {{ pending_publications }}
+                </span>
+            </div>
+            <div class="stat-sub">{{ "%.0f"|format(summary.total_author_hours) }} giờ</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-box box-info position-relative">
+            <i class="bi bi-folder-fill stat-icon"></i>
+            <div class="stat-label">Đề tài, dự án</div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="stat-value">{{ project_count }}</div>
+                <span class="badge pending-badge {{ "bg-warning text-dark" if pending_projects > 0 else "bg-light text-muted" }} {% if pending_projects == 0 %}is-zero{% endif %}" title="Chờ duyệt">
+                    <i class="bi bi-hourglass-split"></i> {{ pending_projects }}
+                </span>
+            </div>
+            <div class="stat-sub">{{ "%.0f"|format(total_project_hours) }} giờ</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-box box-warning position-relative">
+            <i class="bi bi-lightning-fill stat-icon"></i>
+            <div class="stat-label">Hoạt động KHCN khác</div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="stat-value">{{ activity_count }}</div>
+                <span class="badge pending-badge {{ "bg-warning text-dark" if pending_activities > 0 else "bg-light text-muted" }} {% if pending_activities == 0 %}is-zero{% endif %}" title="Chờ duyệt">
+                    <i class="bi bi-hourglass-split"></i> {{ pending_activities }}
+                </span>
+            </div>
+            <div class="stat-sub">{{ "%.0f"|format(total_activity_hours) }} giờ</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- WoS/Scopus - Compact -->
+    <div class="col-lg-2 col-md-4">
+        <div class="card card-clean h-100">
+            <div class="card-header hdr-wos"><i class="bi bi-pie-chart-fill me-2"></i>WoS/Scopus</div>
+            <div class="card-body py-2">
+                <div class="q-item">
+                    <div class="q-badge q1">Q1</div>
+                    <span class="q-value">{{ summary.by_quartile.Q1 }}</span>
+                </div>
+                <div class="q-item">
+                    <div class="q-badge q2">Q2</div>
+                    <span class="q-value">{{ summary.by_quartile.Q2 }}</span>
+                </div>
+                <div class="q-item">
+                    <div class="q-badge q3">Q3</div>
+                    <span class="q-value">{{ summary.by_quartile.Q3 }}</span>
+                </div>
+                <div class="q-item">
+                    <div class="q-badge q4">Q4</div>
+                    <span class="q-value">{{ summary.by_quartile.Q4 }}</span>
+                </div>
+                <div class="pt-2 mt-1 border-top d-flex justify-content-between align-items-center">
+                    <span class="fw-bold small">Tổng cộng</span>
+                    <span class="fw-bold text-primary">{{ summary.wos_scopus_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yearly Stats Table -->
+    <div class="col-lg-10 col-md-8">
+        <div class="card card-clean h-100">
+            <div class="card-header hdr-yearly d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up-arrow me-2"></i>Thống kê giờ nghiên cứu theo năm</span>
+                <a href="{{ url_for('reports.full_summary') }}" class="text-decoration-none"
+                    style="font-size:0.85rem">
+                    Báo cáo chi tiết <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if yearly_stats %}
+                <div class="table-responsive">
+                    <table class="table tbl">
+                        <thead>
+                            <tr>
+                                <th>Năm</th>
+                                <th class="text-center">Ấn phẩm</th>
+                                <th class="text-center">Đề tài</th>
+                                <th class="text-center">HĐ khác</th>
+                                <th class="text-end">Giờ ấn phẩm</th>
+                                <th class="text-end">Giờ đề tài</th>
+                                <th class="text-end">Giờ HĐ khác</th>
+                                <th class="text-end">Tổng giờ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in yearly_stats %}
+                            <tr {% if stat.year==selected_year %}class="row-active" {% endif %}>
+                                <td>
+                                    {% if stat.year == selected_year %}
+                                    <strong class="text-primary">{{ stat.year }}</strong>
+                                    {% else %}
+                                    <a href="{{ url_for('main.dashboard') }}?year={{ stat.year }}"
+                                        class="text-decoration-none">{{ stat.year }}</a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ stat.total_publications }}</td>
+                                <td class="text-center">{{ stat.total_projects|default(0) }}</td>
+                                <td class="text-center">{{ stat.total_activities|default(0) }}</td>
+                                <td class="text-end">{{ "%.0f"|format(stat.total_author_hours) }}</td>
+                                <td class="text-end">{{ "%.0f"|format(stat.project_hours|default(0)) }}</td>
+                                <td class="text-end">{{ "%.0f"|format(stat.activity_hours|default(0)) }}</td>
+                                <td class="text-end col-total">{{
+                                    "%.0f"|format(stat.total_research_hours|default(stat.total_author_hours)) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">Chưa có dữ liệu</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Items: Publications (left) | Projects + Activities (right, stacked) -->
+<div class="row g-3 mt-1">
+    <!-- Ấn phẩm gần đây — cột trái, chiếm nhiều hơn -->
+    <div class="col-lg-7">
+        <div class="card card-clean h-100">
+            <div class="card-header hdr-pub">
+                <i class="bi bi-journal-richtext me-2"></i>Ấn phẩm gần đây
+            </div>
+            <div class="card-body">
+                {% if publications %}
+                {% for pub in publications[:6] %}
+                <div class="list-item d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 me-3" style="min-width:0">
+                        <a href="{{ url_for('publications.view_publication', pub_id=pub.id) }}"
+                            class="d-block text-truncate">{{ pub.title }}</a>
+                        <div class="meta">
+                            {{ pub.year }}
+                            {% if pub.quartile %}
+                            <span
+                                class="badge bg-{% if pub.quartile == 'Q1' %}success{% elif pub.quartile == 'Q2' %}primary{% elif pub.quartile == 'Q3' %}warning{% else %}secondary{% endif %} ms-1">{{
+                                pub.quartile }}</span>
+                            {% endif %}
+                            {{ approval_badge_sm(pub) }}</div>
+                    </div>
+                    <div class="hours">{{ "%.0f"|format(pub.author_hours) }}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">Chưa có ấn phẩm nào</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột phải: Đề tài + Hoạt động xếp chồng -->
+    <div class="col-lg-5 d-flex flex-column gap-3">
+        <!-- Đề tài gần đây -->
+        <div class="card card-clean flex-grow-1">
+            <div class="card-header hdr-proj">
+                <i class="bi bi-folder-fill me-2"></i>Đề tài gần đây
+            </div>
+            <div class="card-body">
+                {% if projects %}
+                {% for proj in projects[:4] %}
+                <div class="list-item d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 me-3" style="min-width:0">
+                        <a href="{{ url_for('projects.view_project', proj_id=proj.id) }}"
+                            class="d-block text-truncate">{{ proj.title }}</a>
+                        <div class="meta">
+                            {{ proj.start_year }}-{{ proj.end_year }}
+                            <span
+                                class="badge bg-{% if proj.role == 'leader' %}success{% elif proj.role == 'secretary' %}info{% else %}light text-dark{% endif %} ms-1">{{
+                                proj.role_display }}</span>
+                            {% if proj.status == 'extended' %}<span class="badge bg-warning text-dark ms-1">Gia
+                                hạn</span>{% endif %}
+                            {{ approval_badge_sm(proj) }}</div>
+                    </div>
+                    <div class="hours">{% if proj.status == 'extended' %}0{% else %}{{ "%.0f"|format(proj.user_hours_per_year)
+                        }}{% endif %}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">Chưa có đề tài nào</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Hoạt động KHCN khác -->
+        <div class="card card-clean flex-grow-1">
+            <div class="card-header hdr-act">
+                <i class="bi bi-lightning-fill me-2"></i>Hoạt động KHCN khác
+            </div>
+            <div class="card-body">
+                {% if other_activities %}
+                {% for act in other_activities[:4] %}
+                <div class="list-item d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 me-3" style="min-width:0">
+                        <a href="{{ url_for('activities.view_activity', act_id=act.id) }}"
+                            class="d-block text-truncate">{{ act.title }}</a>
+                        <div class="meta">{{ act.year }} - {{ act.activity_type_display }}
+                            {{ approval_badge_sm(act) }}</div>
+                    </div>
+                    <div class="hours">{{ "%.0f"|format(act.hours) }}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">Chưa có hoạt động nào</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Khoa/Phòng ban - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+  <div class="col-12">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        <li class="breadcrumb-item active">Khoa/Phòng ban</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <h2><i class="bi bi-diagram-3 me-2"></i>Quản lý Khoa/Phòng ban</h2>
+      <a href="{{ url_for('admin.add_org_unit') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Thêm đơn vị
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover mb-0">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Tên</th>
+            <th>Mã</th>
+            <th>Loại</th>
+            <th class="text-center">Bộ môn</th>
+            <th class="text-center">Người dùng</th>
+            <th class="text-center">Trạng thái</th>
+            <th class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ou in org_units %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+              <strong>{{ ou.name }}</strong>
+              {% if ou.description %}
+              <br><small class="text-muted">{{ ou.description[:60] }}{% if ou.description|length > 60 %}...{% endif %}</small>
+              {% endif %}
+            </td>
+            <td><code>{{ ou.code or '-' }}</code></td>
+            <td>
+              {% if ou.unit_type == 'faculty' %}
+                <span class="badge bg-primary">Khoa</span>
+              {% else %}
+                <span class="badge bg-secondary">Phòng ban</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <span class="badge bg-info">{{ div_counts.get(ou.id, 0) }}</span>
+            </td>
+            <td class="text-center">
+              <span class="badge bg-info">{{ user_counts.get(ou.id, 0) }}</span>
+            </td>
+            <td class="text-center">
+              {% if ou.is_active %}
+              <span class="badge bg-success">Hoạt động</span>
+              {% else %}
+              <span class="badge bg-secondary">Không hoạt động</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.edit_org_unit', org_unit_id=ou.id) }}"
+                   class="btn btn-outline-info" title="Sửa">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST"
+                      action="{{ url_for('admin.delete_org_unit', org_unit_id=ou.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Xác nhận xóa đơn vị {{ ou.name }}? (chỉ xóa được khi không có Bộ môn/Người dùng)')">
+                  <button type="submit" class="btn btn-outline-danger" title="Xóa">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              Chưa có đơn vị nào. <a href="{{ url_for('admin.add_org_unit') }}">Thêm đơn vị đầu tiên</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-info mt-4">
+  <i class="bi bi-info-circle me-2"></i>
+  <strong>Lưu ý:</strong> Với chính sách “DB là nguồn sự thật”, hệ thống không tự ghi đè danh mục khi restart.
+  Bạn có thể thêm/sửa trực tiếp tại đây.
+</div>
+{% endblock %}

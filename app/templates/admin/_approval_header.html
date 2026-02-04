@@ -1,0 +1,40 @@
+{% set is_approval_mode = selected_status == 'pending' %}
+
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item active">{{ page_label }}</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <h2 class="mb-0">
+                <i class="bi {{ page_icon }} me-2"></i>{{ page_label }}
+                {% if is_approval_mode %}
+                <span class="badge bg-warning text-dark ms-2 align-middle">Cần xử lý</span>
+                {% endif %}
+            </h2>
+
+            {% if is_approval_mode %}
+            <form method="post" action="{{ url_for('admin.approve_all_pending') }}"
+                  onsubmit="return confirm('Duyệt tất cả các mục đang chờ bạn trong danh mục này?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="type" value="{{ approve_all_type }}">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-check2-all me-1"></i>Duyệt tất cả{% if pending_total %} ({{ pending_total }}){% endif %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if pending_total and pending_total > 0 %}
+        <div class="text-muted small mt-2">
+            Cần xử lý: <strong>{{ pending_total }}</strong> {{ item_label }}
+        </div>
+        {% endif %}
+
+    </div>
+</div>

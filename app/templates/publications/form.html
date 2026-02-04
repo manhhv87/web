@@ -1,0 +1,736 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'add' %}Thêm{% else %}Sửa{% endif %} ấn phẩm - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if action == 'add' %}plus-lg{% else %}pencil{% endif %} me-2"></i>
+                    {% if action == 'add' %}Thêm ấn phẩm mới{% else %}Sửa ấn phẩm{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="publicationForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <!-- Basic info -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted border-bottom pb-2 mb-3">Thông tin cơ bản</h6>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Loại ấn phẩm <span class="text-danger">*</span></label>
+                            <select name="publication_type" id="publicationType" class="form-select" required
+                                onchange="toggleFields()">
+                                <option value="">-- Chọn loại --</option>
+                                {% for value, label in pub_type_choices %}
+                                <option value="{{ value }}" {% if publication and publication.publication_type==value
+                                    %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Năm <span class="text-danger">*</span></label>
+                            <input type="number" name="year" class="form-control" required min="1900"
+                                max="{{ current_year + 1 }}"
+                                value="{{ publication.year if publication else current_year }}">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label" id="titleLabel">Tên ấn phẩm <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="titleInput" class="form-control" required
+                                value="{{ publication.title if publication else '' }}"
+                                placeholder="Tiêu đề bài báo/sách/bằng sáng chế...">
+                        </div>
+                    </div>
+
+                    <!-- Venue/Publisher -->
+                    <div class="row mb-4" id="venueSection">
+                        <div class="col-12">
+                            <h6 class="text-muted border-bottom pb-2 mb-3" id="venueSectionTitle">Nơi công bố</h6>
+                        </div>
+                        <div class="col-md-8 mb-3" id="venueSearchContainer">
+                            <label class="form-label" id="venueLabel">Tên tạp chí/Hội nghị/NXB <span class="text-danger">*</span></label>
+                            <div class="input-group" id="venueInputGroup">
+                                <input type="text" name="venue_name" id="venueNameInput" class="form-control" required
+                                    value="{{ publication.venue_name if publication else '' }}"
+                                    placeholder="Nhập để tìm kiếm hoặc nhập thủ công..." autocomplete="off">
+                                <span class="input-group-text" id="quartileBadge"
+                                    style="display: none; min-width: 50px;">
+                                    <!-- Quartile badge will be inserted here -->
+                                </span>
+                            </div>
+                            <div id="venueSearchResults" class="list-group position-absolute w-100"
+                                style="z-index: 1000; display: none; max-height: 300px; overflow-y: auto;">
+                                <!-- Search results will be inserted here -->
+                            </div>
+                            <small class="text-muted" id="venueHint">Gõ ít nhất 2 ký tự để tìm kiếm từ cơ sở dữ liệu</small>
+                        </div>
+                        <!-- Quartile is auto-filled from journal database search -->
+                        <input type="hidden" name="quartile" id="quartileHidden"
+                            value="{{ publication.quartile if publication else '' }}">
+                        <div class="col-md-4 mb-3" id="domesticPointsField" style="display: none;">
+                            <label class="form-label">Điểm HĐGSNN <span class="text-danger">*</span></label>
+                            <input type="number" name="domestic_points" id="domesticPointsInput" class="form-control" step="0.25" min="0" max="2"
+                                value="{{ publication.domestic_points if publication else '' }}"
+                                placeholder="0.25, 0.5, 0.75, 1.0...">
+                        </div>
+                        <div class="col-md-4 mb-3" id="issnField" style="display: none;">
+                            <label class="form-label">ISSN <span class="text-danger">*</span></label>
+                            <input type="text" name="issn" id="issnInput" class="form-control"
+                                value="{{ publication.issn if publication else '' }}" placeholder="1234-5678"
+                                maxlength="9">
+                            <div class="form-text" id="issnFeedback"></div>
+                        </div>
+                        <div class="col-md-8 mb-3" id="publisherField" style="display: none;">
+                            <label class="form-label">Nhà xuất bản <span class="text-danger">*</span></label>
+                            <input type="text" name="publisher" id="publisherInput" class="form-control"
+                                value="{{ publication.publisher if publication else '' }}"
+                                placeholder="Springer, Elsevier...">
+                        </div>
+                        <div class="col-md-4 mb-3" id="isbnField" style="display: none;">
+                            <label class="form-label">ISBN <span class="text-danger">*</span></label>
+                            <input type="text" name="isbn" id="isbnInput" class="form-control"
+                                value="{{ publication.isbn if publication else '' }}" placeholder="978-3-16-148410-0"
+                                maxlength="17">
+                            <div class="form-text" id="isbnFeedback"></div>
+                        </div>
+                        <div class="col-12 mb-3" id="republishedField" style="display: none;">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_republished" class="form-check-input" id="isRepublished"
+                                    {% if publication and publication.is_republished %}checked{% endif %}>
+                                <label class="form-check-label" for="isRepublished">
+                                    Sách tái bản/biên dịch (1/3 giờ)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patent fields -->
+                    <div class="row mb-4" id="patentFields" style="display: none;">
+                        <div class="col-12">
+                            <h6 class="text-muted border-bottom pb-2 mb-3">Thông tin sáng chế</h6>
+                        </div>
+                        <div class="col-8 mb-3">
+                            <label class="form-label">Giai đoạn <span class="text-danger">*</span></label>
+                            <select name="patent_stage" id="patentStageSelect" class="form-select"
+                                onchange="updatePatentNumberField()">
+                                {% for value, label in patent_stage_choices %}
+                                <option value="{{ value }}" {% if publication and publication.patent_stage==value
+                                    %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4 mb-3">
+                            <label class="form-label" id="patentNumberLabel">Số đơn/bằng</label>
+                            <input type="text" name="patent_number" id="patentNumberInput" class="form-control"
+                                value="{{ publication.patent_number if publication else '' }}"
+                                placeholder="Nhập số đơn hoặc số bằng (nếu có)">
+                        </div>
+                    </div>
+
+                    <!-- Author info -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted border-bottom pb-2 mb-3">Thông tin tác giả</h6>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Danh sách tác giả <span class="text-danger">*</span></label>
+                            <input type="text" name="all_authors" class="form-control" required
+                                value="{{ publication.all_authors if publication else '' }}"
+                                placeholder="Nguyen Van A, Tran Van B, ...">
+                            <small class="text-muted">Phân cách bằng dấu phẩy</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tổng số tác giả <span class="text-danger">*</span></label>
+                            <input type="number" name="total_authors" class="form-control" required min="1" max="100"
+                                value="{{ publication.total_authors if publication else 1 }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Vai trò của bản thân <span class="text-danger">*</span></label>
+                            <select name="author_role" class="form-select" required>
+                                {% for value, label in author_role_choices %}
+                                <option value="{{ value }}" {% if publication and publication.author_role==value
+                                    %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">% đóng góp (tùy chọn)</label>
+                            <input type="number" name="contribution_percentage" class="form-control" step="0.1" min="0"
+                                max="100"
+                                value="{{ publication.contribution_percentage if publication and publication.contribution_percentage else '' }}"
+                                placeholder="Để trống = tự động tính">
+                            <small class="text-muted">Ghi đè công thức mặc định</small>
+                        </div>
+                    </div>
+
+                    <!-- Additional info -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted border-bottom pb-2 mb-3">Thông tin bổ sung</h6>
+                        </div>
+                        <div class="col-md-6 mb-3" id="doiField">
+                            <label class="form-label">DOI</label>
+                            <input type="text" name="doi" class="form-control"
+                                value="{{ publication.doi if publication else '' }}" placeholder="10.1000/xyz123">
+                        </div>
+                        <div class="col-md-6 mb-3" id="urlField">
+                            <label class="form-label">URL</label>
+                            <input type="url" name="url" class="form-control"
+                                value="{{ publication.url if publication else '' }}" placeholder="https://...">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Ghi chú</label>
+                            <textarea name="notes" class="form-control"
+                                rows="2">{{ publication.notes if publication else '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('publications.list_publications') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="action" value="save_draft" class="btn btn-outline-primary">
+                                <i class="bi bi-save me-1"></i>Lưu nháp
+                            </button>
+                            <button type="submit" name="action" value="submit" class="btn btn-success">
+                                <i class="bi bi-send me-1"></i>Gửi duyệt
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block text-end">
+                        <i class="bi bi-info-circle me-1"></i>
+                        "Lưu nháp" để lưu và chỉnh sửa sau. "Gửi duyệt" để gửi cho Admin xem xét.
+                    </small>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help sidebar -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Hướng dẫn
+            </div>
+            <div class="card-body">
+                <h6>Vai trò tác giả</h6>
+                <ul class="small text-muted">
+                    <li><strong>Tác giả đầu:</strong> Tên đứng đầu trong danh sách</li>
+                    <li><strong>Tác giả liên hệ:</strong> Corresponding author</li>
+                    <li><strong>Tác giả đầu + Liên hệ:</strong> Nếu bạn là cả hai</li>
+                    <li><strong>Đồng tác giả:</strong> Các vị trí khác</li>
+                </ul>
+
+                <h6>Công thức tính giờ</h6>
+                <ul class="small text-muted">
+                    <li>2/3 giờ chia đều cho tất cả tác giả</li>
+                    <li>1/3 giờ bonus cho tác giả chính:
+                        <ul>
+                            <li>Tác giả đầu: +1/6</li>
+                            <li>Tác giả liên hệ: +1/6</li>
+                            <li>Cả hai: +1/3</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h6>Lưu ý</h6>
+                <ul class="small text-muted">
+                    <li>Sách tái bản/biên dịch chỉ được tính 1/3 số giờ</li>
+                    <li>Bằng sáng chế/giải pháp hữu ích:
+                        <ul>
+                            <li>Giai đoạn 1 (đơn được chấp nhận): 1/3 giờ</li>
+                            <li>Giai đoạn 2 (được cấp bằng): 2/3 giờ</li>
+                            <li>Nhập <strong>mỗi giai đoạn</strong> là một bản ghi riêng (tổng = 100%)</li>
+                        </ul>
+                    </li>
+                    <li>Đối với sáng chế, giải thưởng, triển lãm: vai trò "Tác giả đầu" tương đương tác giả chính/chủ trì</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    #venueSearchContainer {
+        position: relative;
+    }
+
+    #venueSearchResults .list-group-item {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+    }
+
+    #venueSearchResults .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    #venueSearchResults .journal-name {
+        font-weight: 500;
+    }
+
+    #venueSearchResults .journal-meta {
+        font-size: 0.8em;
+        color: #6c757d;
+    }
+
+    .quartile-badge {
+        font-weight: bold;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        color: white;
+    }
+
+    .quartile-Q1 {
+        background-color: #198754;
+    }
+
+    .quartile-Q2 {
+        background-color: #0d6efd;
+    }
+
+    .quartile-Q3 {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .quartile-Q4 {
+        background-color: #6c757d;
+    }
+
+    /* Đồng bộ chiều cao input-group (Tên tạp chí + badge) với các input thường (ISSN, etc.) */
+    #venueInputGroup .form-control,
+    #venueInputGroup .input-group-text {
+        height: calc(1.5em + 0.75rem + 2px);
+    }
+
+    #issnField .form-control,
+    #domesticPointsField .form-control {
+        height: calc(1.5em + 0.75rem + 2px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle fields based on publication type
+    function toggleFields() {
+        const pubType = document.getElementById('publicationType').value;
+
+        // Hide all optional fields first
+        document.getElementById('domesticPointsField').style.display = 'none';
+        document.getElementById('issnField').style.display = 'none';
+        document.getElementById('isbnField').style.display = 'none';
+        document.getElementById('publisherField').style.display = 'none';
+        document.getElementById('republishedField').style.display = 'none';
+        document.getElementById('patentFields').style.display = 'none';
+        document.getElementById('venueSearchContainer').style.display = 'block';
+        document.getElementById('venueSearchContainer').className = 'col-12 mb-3';
+        document.getElementById('venueInputGroup').className = '';
+        document.getElementById('doiField').style.display = 'block';
+        document.getElementById('urlField').style.display = 'block';
+        document.getElementById('urlField').className = 'col-md-6 mb-3';
+
+        // Show relevant fields based on type
+        // ISSN: always shown for all journal types
+        // ISBN: always shown for books and conferences
+        if (pubType.startsWith('journal_')) {
+            document.getElementById('venueSearchContainer').className = 'col-md-8 mb-3';
+            document.getElementById('venueInputGroup').className = 'input-group';
+            document.getElementById('issnField').style.display = 'block';
+            if (pubType === 'journal_domestic') {
+                document.getElementById('domesticPointsField').style.display = 'block';
+            }
+        } else if (pubType.startsWith('conference_')) {
+            document.getElementById('venueSearchContainer').className = 'col-md-8 mb-3';
+            document.getElementById('isbnField').style.display = 'block';
+        } else if (pubType.startsWith('monograph') || pubType.startsWith('textbook') || pubType.startsWith('book_chapter')) {
+            document.getElementById('publisherField').style.display = 'block';
+            document.getElementById('isbnField').style.display = 'block';
+            // Monograph/textbook: hide venue_name (title field already captures book name)
+            if (pubType.startsWith('monograph') || pubType.startsWith('textbook')) {
+                document.getElementById('venueSearchContainer').style.display = 'none';
+                document.getElementById('republishedField').style.display = 'block';
+            }
+        } else if (pubType.startsWith('patent') || pubType === 'utility_solution') {
+            document.getElementById('patentFields').style.display = 'flex';
+            document.getElementById('doiField').style.display = 'none';
+            document.getElementById('urlField').className = 'col-12 mb-3';
+        } else if (pubType.startsWith('award_')) {
+            document.getElementById('doiField').style.display = 'none';
+            document.getElementById('urlField').className = 'col-12 mb-3';
+        } else if (pubType.startsWith('exhibition_')) {
+            document.getElementById('doiField').style.display = 'none';
+            document.getElementById('urlField').style.display = 'none';
+        }
+
+        // Update context-specific labels
+        updateDynamicLabels(pubType);
+    }
+
+    // Dynamic labels based on publication type
+    function updateDynamicLabels(pubType) {
+        const sectionTitle = document.getElementById('venueSectionTitle');
+        const venueLabel = document.getElementById('venueLabel');
+        const venueHint = document.getElementById('venueHint');
+        const titleLabel = document.getElementById('titleLabel');
+        const titleInput = document.getElementById('titleInput');
+        const venueSection = document.getElementById('venueSection');
+
+        // Defaults
+        let section = 'Nơi công bố';
+        let label = 'Tên tạp chí/Hội nghị/NXB';
+        let hint = 'Nhập tên';
+        let titleText = 'Tên ấn phẩm';
+        let titlePlaceholder = 'Tiêu đề bài báo/sách/bằng sáng chế...';
+        let venueRequired = true;
+        if (pubType.startsWith('journal_')) {
+            section = 'Nơi công bố';
+            label = 'Tên tạp chí';
+            hint = 'Gõ ít nhất 2 ký tự để tìm kiếm từ cơ sở dữ liệu';
+            titleText = 'Tên bài báo';
+            titlePlaceholder = 'Tiêu đề bài báo khoa học';
+        } else if (pubType.startsWith('conference_')) {
+            section = 'Nơi công bố';
+            label = 'Tên hội nghị/hội thảo';
+            hint = 'Nhập tên hội nghị/hội thảo';
+            titleText = 'Tên báo cáo';
+            titlePlaceholder = 'Tiêu đề báo cáo khoa học';
+        } else if (pubType.startsWith('monograph') || pubType.startsWith('textbook')) {
+            section = 'Thông tin xuất bản';
+            label = 'Tên sách';
+            hint = '';
+            titleText = 'Tên sách/giáo trình';
+            titlePlaceholder = 'Tên sách chuyên khảo hoặc giáo trình';
+            venueRequired = false; // venue hidden
+        } else if (pubType.startsWith('book_chapter')) {
+            section = 'Thông tin xuất bản';
+            label = 'Tên sách';
+            hint = 'Nhập tên sách chứa chương';
+            titleText = 'Tên chương sách';
+            titlePlaceholder = 'Tên chương sách';
+        } else if (pubType.startsWith('patent') || pubType === 'utility_solution') {
+            section = 'Thông tin sáng chế';
+            label = 'Nơi cấp bằng';
+            hint = 'Ví dụ: Cục SHTT Việt Nam, USPTO, EPO...';
+            titleText = 'Tên sáng chế/giải pháp';
+            titlePlaceholder = 'Tên bằng sáng chế hoặc giải pháp hữu ích';
+            venueRequired = true;
+        } else if (pubType.startsWith('award_')) {
+            section = 'Thông tin giải thưởng';
+            label = 'Tên giải thưởng';
+            hint = 'Nhập tên giải thưởng';
+            titleText = 'Tên công trình đạt giải';
+            titlePlaceholder = 'Tên công trình/sản phẩm đạt giải thưởng';
+        } else if (pubType.startsWith('exhibition_')) {
+            section = 'Thông tin triển lãm';
+            label = 'Tên triển lãm/hội chợ';
+            hint = 'Nhập tên triển lãm hoặc hội chợ KHCN';
+            titleText = 'Tên sản phẩm';
+            titlePlaceholder = 'Tên sản phẩm KHCN tham gia triển lãm';
+        }
+
+        sectionTitle.textContent = section;
+        venueLabel.innerHTML = label + (venueRequired ? ' <span class="text-danger">*</span>' : '');
+        venueHint.textContent = hint;
+        titleLabel.innerHTML = titleText + ' <span class="text-danger">*</span>';
+        titleInput.placeholder = titlePlaceholder;
+
+        // Journal search is always enabled regardless of publication type
+    }
+
+    // Journal search autocomplete
+    let searchTimeout = null;
+    const venueInput = document.getElementById('venueNameInput');
+    const searchResults = document.getElementById('venueSearchResults');
+    const quartileBadge = document.getElementById('quartileBadge');
+    const quartileHidden = document.getElementById('quartileHidden');
+    const issnInput = document.querySelector('input[name="issn"]');
+
+    // Update quartile badge display
+    function updateQuartileBadge(quartile) {
+        if (quartile && quartile.match(/^Q[1-4]$/)) {
+            quartileBadge.innerHTML = `<span class="quartile-badge quartile-${quartile}">${quartile}</span>`;
+            quartileBadge.style.display = 'flex';
+        } else {
+            quartileBadge.style.display = 'none';
+        }
+    }
+
+    // Search journals from database (always enabled)
+    function searchJournals(query) {
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        fetch(`/api/journals/search?q=${encodeURIComponent(query)}&limit=10`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    searchResults.innerHTML = '<div class="list-group-item text-muted">Không tìm thấy. Bạn có thể nhập thủ công.</div>';
+                } else {
+                    searchResults.innerHTML = data.map(journal => `
+                    <div class="list-group-item" onclick="selectJournal('${escapeHtml(journal.name)}', '${journal.quartile || ''}', '${journal.issn || ''}')">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="journal-name">${escapeHtml(journal.name)}</div>
+                                <div class="journal-meta">
+                                    ${journal.issn ? 'ISSN: ' + journal.issn : ''}
+                                    ${journal.publisher ? ' | ' + journal.publisher : ''}
+                                </div>
+                            </div>
+                            ${journal.quartile ? `<span class="quartile-badge quartile-${journal.quartile}">${journal.quartile}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                }
+                searchResults.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                searchResults.style.display = 'none';
+            });
+    }
+
+    // Select a journal from search results
+    function selectJournal(name, quartile, issn) {
+        venueInput.value = name;
+        searchResults.style.display = 'none';
+
+        // Update quartile badge
+        updateQuartileBadge(quartile);
+
+        // Auto-fill quartile hidden input
+        if (quartileHidden) {
+            quartileHidden.value = quartile || '';
+        }
+
+        // Auto-fill ISSN if available and show the ISSN field
+        if (issn && issnInput) {
+            issnInput.value = issn;
+            document.getElementById('issnField').style.display = 'block';
+        }
+
+        // If this is a WoS/Scopus journal with known quartile, auto-select the publication type
+        const pubType = document.getElementById('publicationType');
+        if (quartile && quartile.match(/^Q[1-4]$/) && pubType.value === '') {
+            pubType.value = 'journal_wos_scopus';
+            toggleFields();
+        }
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Event listeners
+    venueInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        // Clear badge if user is typing manually
+        if (query.length < 2) {
+            updateQuartileBadge(null);
+        }
+
+        // Debounce search
+        searchTimeout = setTimeout(() => {
+            searchJournals(query);
+        }, 300);
+    });
+
+    venueInput.addEventListener('focus', function () {
+        if (this.value.length >= 2) {
+            searchJournals(this.value);
+        }
+    });
+
+    // Hide search results when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!venueInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+
+    // Update patent number label and required state based on selected stage
+    function updatePatentNumberField() {
+        const stageEl = document.getElementById('patentStageSelect');
+        const numLabel = document.getElementById('patentNumberLabel');
+        const numInput = document.getElementById('patentNumberInput');
+        if (!stageEl || !numLabel || !numInput) return;
+
+        const stage = stageEl.value;
+        if (stage === 'stage_2') {
+            numLabel.innerHTML = 'Số bằng <span class="text-danger">*</span>';
+            numInput.required = true;
+            numInput.placeholder = 'Số bằng sáng chế/giải pháp hữu ích';
+        } else {
+            numLabel.innerHTML = 'Số đơn';
+            numInput.required = false;
+            numInput.placeholder = 'Số đơn đăng ký (nếu có)';
+        }
+    }
+
+    // Set required attribute on conditional fields based on visibility
+    function updateConditionalRequired() {
+        const pubType = document.getElementById('publicationType').value;
+
+        // Venue name: not required for monograph/textbook (title = book name)
+        // and not required for patent/utility (title = invention name)
+        const venueEl = document.getElementById('venueNameInput');
+        if (venueEl) {
+            const hideVenue = pubType.startsWith('monograph') || pubType.startsWith('textbook');
+            venueEl.required = !hideVenue;
+        }
+
+        // ISSN: required for all journal types
+        const issnEl = document.getElementById('issnInput');
+        if (issnEl) issnEl.required = pubType.startsWith('journal_');
+
+        // ISBN: required for conferences and books
+        const isbnEl = document.getElementById('isbnInput');
+        if (isbnEl) isbnEl.required = pubType.startsWith('conference_') ||
+            pubType.startsWith('monograph') || pubType.startsWith('textbook') || pubType.startsWith('book_chapter');
+
+        // Publisher: required for books
+        const publisherEl = document.getElementById('publisherInput');
+        if (publisherEl) publisherEl.required = pubType.startsWith('monograph') ||
+            pubType.startsWith('textbook') || pubType.startsWith('book_chapter');
+
+        // Domestic points: required for journal_domestic
+        const domesticEl = document.getElementById('domesticPointsInput');
+        if (domesticEl) domesticEl.required = (pubType === 'journal_domestic');
+
+        // Patent fields: stage required, number conditional on stage
+        const isPatent = pubType.startsWith('patent') || pubType === 'utility_solution';
+        const patentStageEl = document.getElementById('patentStageSelect');
+        if (patentStageEl) patentStageEl.required = isPatent;
+        // Patent number: required at stage_2, optional at stage_1
+        if (isPatent) {
+            updatePatentNumberField();
+        } else {
+            const patentNumEl = document.getElementById('patentNumberInput');
+            if (patentNumEl) patentNumEl.required = false;
+        }
+    }
+
+    // Override toggleFields to also update required
+    const _origToggleFields = toggleFields;
+    toggleFields = function() {
+        _origToggleFields();
+        updateConditionalRequired();
+    };
+
+    // ===== ISSN / ISBN real-time validation =====
+    function validateISSN(value) {
+        const cleaned = value.replace(/[-\s]/g, '');
+        if (cleaned.length === 0) return null; // empty = chưa nhập
+        if (cleaned.length !== 8) return false;
+        const head = cleaned.slice(0, 7);
+        const check = cleaned[7].toUpperCase();
+        return /^\d{7}$/.test(head) && (/\d/.test(check) || check === 'X');
+    }
+
+    function validateISBN(value) {
+        const cleaned = value.replace(/[-\s]/g, '');
+        if (cleaned.length === 0) return null; // empty = chưa nhập
+        if (cleaned.length === 10) {
+            const head = cleaned.slice(0, 9);
+            const check = cleaned[9].toUpperCase();
+            return /^\d{9}$/.test(head) && (/\d/.test(check) || check === 'X');
+        }
+        if (cleaned.length === 13) return /^\d{13}$/.test(cleaned);
+        return false;
+    }
+
+    function applyFieldFeedback(inputEl, feedbackEl, isValid, okMsg, errMsg) {
+        if (isValid === null) {
+            // chưa nhập - reset
+            inputEl.classList.remove('is-valid', 'is-invalid');
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'form-text';
+        } else if (isValid) {
+            inputEl.classList.remove('is-invalid');
+            inputEl.classList.add('is-valid');
+            feedbackEl.textContent = okMsg;
+            feedbackEl.className = 'form-text text-success';
+        } else {
+            inputEl.classList.remove('is-valid');
+            inputEl.classList.add('is-invalid');
+            feedbackEl.textContent = errMsg;
+            feedbackEl.className = 'form-text text-danger';
+        }
+    }
+
+    // Auto-format ISSN: thêm dấu '-' sau 4 chữ số
+    function autoFormatISSN(el) {
+        let raw = el.value.replace(/[^0-9Xx]/g, '');
+        if (raw.length > 4) {
+            raw = raw.slice(0, 4) + '-' + raw.slice(4, 8);
+        }
+        el.value = raw;
+    }
+
+    (function initIssnIsbnValidation() {
+        const issnInput = document.getElementById('issnInput');
+        const issnFeedback = document.getElementById('issnFeedback');
+        const isbnInput = document.getElementById('isbnInput');
+        const isbnFeedback = document.getElementById('isbnFeedback');
+
+        if (issnInput && issnFeedback) {
+            issnInput.addEventListener('input', function() {
+                autoFormatISSN(this);
+                const result = validateISSN(this.value);
+                applyFieldFeedback(this, issnFeedback, result,
+                    'ISSN hợp lệ', 'ISSN phải gồm 8 chữ số (VD: 1234-5678)');
+            });
+            // Validate on load nếu đã có giá trị
+            if (issnInput.value.trim()) {
+                const result = validateISSN(issnInput.value);
+                applyFieldFeedback(issnInput, issnFeedback, result,
+                    'ISSN hợp lệ', 'ISSN phải gồm 8 chữ số (VD: 1234-5678)');
+            }
+        }
+
+        if (isbnInput && isbnFeedback) {
+            isbnInput.addEventListener('input', function() {
+                const result = validateISBN(this.value);
+                applyFieldFeedback(this, isbnFeedback, result,
+                    'ISBN hợp lệ', 'ISBN phải gồm 10 hoặc 13 chữ số (VD: 978-3-16-148410-0)');
+            });
+            // Validate on load nếu đã có giá trị
+            if (isbnInput.value.trim()) {
+                const result = validateISBN(isbnInput.value);
+                applyFieldFeedback(isbnInput, isbnFeedback, result,
+                    'ISBN hợp lệ', 'ISBN phải gồm 10 hoặc 13 chữ số (VD: 978-3-16-148410-0)');
+            }
+        }
+    })();
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleFields();
+
+        // If editing and has a quartile value, show the badge
+        {% if publication and publication.quartile %}
+        updateQuartileBadge('{{ publication.quartile }}');
+        {% endif %}
+    });
+</script>
+{% endblock %}

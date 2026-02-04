@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.full_name }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.list_users') }}">Người dùng</a></li>
+                <li class="breadcrumb-item active">{{ user.full_name }}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-person me-2"></i>{{ user.full_name }}</h2>
+    </div>
+</div>
+
+<!-- User Info -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Thông tin cá nhân
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th>Email:</th>
+                        <td>{{ user.email }}</td>
+                    </tr>
+                    <tr>
+                        <th>Đơn vị:</th>
+                        <td>{{ user.full_organization_name or '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Khoa/Phòng ban:</th>
+                        <td>{{ user.organization_unit_name or '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Bộ môn:</th>
+                        <td>{{ user.division_name or '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Mã cán bộ:</th>
+                        <td>{{ user.employee_id or '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Vai trò:</th>
+                        <td>
+                            {% if user.is_admin %}
+                            <span class="badge bg-danger">Admin</span>
+                            {% else %}
+                            <span class="badge bg-secondary">User</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Trạng thái:</th>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge bg-success">Hoạt động</span>
+                            {% else %}
+                            <span class="badge bg-warning">Đã khóa</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Ngày tạo:</th>
+                        <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if user.email != 'admin@vnu.edu.vn' %}
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bar-chart me-2"></i>Tổng hợp giờ nghiên cứu
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h4 class="text-primary">{{ "%.1f"|format(summary['total_hours']) }}</h4>
+                        <small class="text-muted">Tổng giờ</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4>{{ "%.1f"|format(summary['publication_hours']) }}</h4>
+                        <small class="text-muted">Giờ ấn phẩm</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4>{{ "%.1f"|format(summary['project_hours']) }}</h4>
+                        <small class="text-muted">Giờ đề tài</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4>{{ "%.1f"|format(summary['other_activity_hours']) }}</h4>
+                        <small class="text-muted">Giờ hoạt động khác</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-shield-lock me-2"></i>Tài khoản quản trị
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Đây là tài khoản quản trị hệ thống. Không áp dụng thống kê giờ nghiên cứu.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if user.email != 'admin@vnu.edu.vn' %}
+<!-- Publications -->
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="bi bi-file-earmark-text me-2"></i>Ấn phẩm khoa học ({{ publications|length }})
+    </div>
+    <div class="card-body">
+        {% if publications %}
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Loại</th>
+                        <th>Năm</th>
+                        <th>Giờ</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pub in publications %}
+                    <tr>
+                        <td>{{ pub.title[:50] }}{% if pub.title|length > 50 %}...{% endif %}</td>
+                        <td>{{ pub.publication_type_display }}</td>
+                        <td>{{ pub.year }}</td>
+                        <td>{{ "%.1f"|format(pub.author_hours) }}</td>
+                        <td>
+                            {% if pub.is_approved %}
+                            <span class="badge bg-success">?? duy?t</span>
+                            {% elif pub.approval_status == 'returned' %}
+                            <span class="badge bg-danger">?? trả lại</span>
+                            {% elif pub.approval_status == 'department_approved' %}
+                            <span class="badge bg-info text-dark">Bộ môn đã xác nhận</span>
+                            {% elif pub.approval_status == 'faculty_approved' %}
+                            <span class="badge bg-primary">Khoa đã duyệt</span>
+                            {% else %}
+                            <span class="badge bg-warning">Chưa duyệt</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not pub.is_approved %}
+                            <form action="{{ url_for('admin.approve_publication', pub_id=pub.id) }}" method="post"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success">Duyệt</button>
+                            </form>
+                            {% else %}
+                            <form action="{{ url_for('admin.reject_publication', pub_id=pub.id) }}" method="post"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-warning">Hủy duyệt</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Chưa có ấn phẩm nào.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Projects -->
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="bi bi-folder2-open me-2"></i>Đề tài, dự án ({{ projects|length }})
+    </div>
+    <div class="card-body">
+        {% if projects %}
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Cấp</th>
+                        <th>Vai trò</th>
+                        <th>Thời gian</th>
+                        <th>Giờ</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proj in projects %}
+                    <tr>
+                        <td>{{ proj.title[:50] }}{% if proj.title|length > 50 %}...{% endif %}</td>
+                        <td>{{ proj.project_level_display }}</td>
+                        <td>{{ proj.role_display }}</td>
+                        <td>{{ proj.start_year }} - {{ proj.end_year }}</td>
+                        <td>{{ "%.1f"|format(proj.user_hours) }}</td>
+                        <td>
+                            {% if proj.is_approved %}
+                            <span class="badge bg-success">?? duy?t</span>
+                            {% elif proj.approval_status == 'returned' %}
+                            <span class="badge bg-danger">?? trả lại</span>
+                            {% elif proj.approval_status == 'department_approved' %}
+                            <span class="badge bg-info text-dark">Bộ môn đã xác nhận</span>
+                            {% elif proj.approval_status == 'faculty_approved' %}
+                            <span class="badge bg-primary">Khoa đã duyệt</span>
+                            {% else %}
+                            <span class="badge bg-warning">Chưa duyệt</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not proj.is_approved %}
+                            <form action="{{ url_for('admin.approve_project', proj_id=proj.id) }}" method="post"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success">Duyệt</button>
+                            </form>
+                            {% else %}
+                            <form action="{{ url_for('admin.reject_project', proj_id=proj.id) }}" method="post"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-warning">Hủy duyệt</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Chưa có đề tài nào.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Other Activities -->
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="bi bi-activity me-2"></i>Hoạt động KHCN khác ({{ activities|length }})
+    </div>
+    <div class="card-body">
+        {% if activities %}
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Loại</th>
+                        <th>Năm</th>
+                        <th>Số lượng</th>
+                        <th>Giờ</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in activities %}
+                    <tr>
+                        <td>{{ act.title[:50] }}{% if act.title|length > 50 %}...{% endif %}</td>
+                        <td>{{ act.activity_type_display }}</td>
+                        <td>{{ act.year }}</td>
+                        <td>{{ act.quantity }}</td>
+                        <td>{{ "%.1f"|format(act.hours) }}</td>
+                        <td>
+                            {% if act.is_approved %}
+                            <span class="badge bg-success">?? duy?t</span>
+                            {% elif act.approval_status == 'returned' %}
+                            <span class="badge bg-danger">?? trả lại</span>
+                            {% elif act.approval_status == 'department_approved' %}
+                            <span class="badge bg-info text-dark">Bộ môn đã xác nhận</span>
+                            {% elif act.approval_status == 'faculty_approved' %}
+                            <span class="badge bg-primary">Khoa đã duyệt</span>
+                            {% else %}
+                            <span class="badge bg-warning">Chưa duyệt</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not act.is_approved %}
+                            <form action="{{ url_for('admin.approve_activity', act_id=act.id) }}" method="post"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success">Duyệt</button>
+                            </form>
+                            {% else %}
+                            <form action="{{ url_for('admin.reject_activity', act_id=act.id) }}" method="post"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-warning">Hủy duyệt</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Chưa có hoạt động nào.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+</div>
+{% endblock %}

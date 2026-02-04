@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% from "_approval_progress.html" import approval_badge %}
+
+{% block title %}Đề tài, dự án KHCN - {{ app_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .proj-table thead th {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 12px 14px;
+        border: none;
+        white-space: nowrap;
+    }
+</style>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>
+                <i class="bi bi-folder2-open me-2"></i>Đề tài, dự án KHCN
+            </h3>
+            <a href="{{ url_for('projects.add_project') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Thêm đề tài mới
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label">Cấp đề tài</label>
+                        <select name="level" class="form-select">
+                            <option value="">Tất cả</option>
+                            {% for val, label in level_choices %}
+                            <option value="{{ val }}" {% if selected_level==val %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Trạng thái thực hiện</label>
+                        <select name="progress" class="form-select">
+                            <option value="">Tất cả</option>
+                            {% for val, label in progress_choices %}
+                            <option value="{{ val }}" {% if selected_progress==val %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Trạng thái duyệt</label>
+                        <select name="approval_status" class="form-select">
+                            <option value="">Tất cả</option>
+                            <option value="approved" {% if selected_approval=='approved' %}selected{% endif %}>Đã duyệt</option>
+                            <option value="pending" {% if selected_approval=='pending' %}selected{% endif %}>Chờ duyệt</option>
+                            <option value="returned" {% if selected_approval=='returned' %}selected{% endif %}>Trả lại</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Năm</label>
+                        <select name="year" class="form-select">
+                            <option value="">Tất cả</option>
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                        <div class="d-flex gap-2 justify-content-lg-end">
+                            <button type="submit" class="btn btn-primary flex-grow-1 flex-lg-grow-0">
+                                <i class="bi bi-funnel"></i> Lọc
+                            </button>
+                            <a href="{{ url_for('projects.list_projects') }}" class="btn btn-outline-secondary flex-grow-1 flex-lg-grow-0">
+                                Xóa bộ lọc
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thông báo đề tài bị trả lại -->
+{% set returned_projects = projects|selectattr('approval_status', 'equalto', 'returned')|list %}
+{% if returned_projects %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-danger">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Có {{ returned_projects|length }} đề tài bị trả lại</h5>
+            <p class="mb-2">Các đề tài sau cần được chỉnh sửa theo yêu cầu của Admin:</p>
+            <ul class="mb-0">
+                {% for proj in returned_projects %}
+                <li>
+                    <strong>{{ proj.title[:50] }}{% if proj.title|length > 50 %}...{% endif %}</strong>
+                    {% if proj.rejection_reason %}
+                    <br><small class="text-danger"><i class="bi bi-arrow-return-right me-1"></i>Lý do: {{ proj.rejection_reason }}</small>
+                    {% endif %}
+                    <a href="{{ url_for('projects.edit_project', proj_id=proj.id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="bi bi-pencil me-1"></i>Sửa
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Danh sách đề tài -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if projects %}
+                <div class="table-responsive">
+                    <table class="table table-hover proj-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Thời gian</th>
+                                <th>Tên đề tài</th>
+                                <th>Cấp</th>
+                                <th>Vai trò</th>
+                                <th>Tiến độ</th>
+                                <th class="text-end" style="white-space:nowrap">Tổng giờ</th>
+                                <th class="text-end" style="white-space:nowrap">Giờ/năm</th>
+                                <th>Duyệt</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proj in projects %}
+                            <tr>
+                                <td>
+                                    <small>{{ proj.start_year }}{% if proj.end_year != proj.start_year %}-{{
+                                        proj.end_year }}{% endif %}</small>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('projects.view_project', proj_id=proj.id) }}">
+                                        {{ proj.title[:60] }}{% if proj.title|length > 60 %}...{% endif %}
+                                    </a>
+                                    {% if proj.project_code %}
+                                    <br><small class="text-muted">Mã: {{ proj.project_code }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge bg-{% if proj.project_level == 'national' %}danger{% elif proj.project_level == 'vnu_ministry' %}warning{% elif proj.project_level == 'university' %}info{% else %}secondary{% endif %}">
+                                        {{ proj.project_level_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge bg-{% if proj.role == 'leader' %}success{% elif proj.role == 'secretary' %}primary{% else %}light text-dark{% endif %}">
+                                        {{ proj.role_display }}
+                                    </span>
+                                </td>
+                                <td style="white-space:nowrap">
+                                    {% if proj.status == 'completed' %}
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Đã nghiệm thu</span>
+                                    {% elif proj.status == 'extended' %}
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Gia hạn</span>
+                                    {% else %}
+                                    <span class="text-info"><i class="bi bi-arrow-repeat"></i> Đang thực hiện</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if proj.status == 'extended' %}
+                                    <span class="text-muted">0</span>
+                                    {% else %}
+                                    {{ "%.1f"|format(proj.user_hours) }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if proj.status == 'extended' %}
+                                    <span class="text-muted">0</span>
+                                    {% elif proj.end_year != proj.start_year %}
+                                    <strong>{{ "%.1f"|format(proj.user_hours_per_year) }}</strong>
+                                    {% else %}
+                                    <strong>{{ "%.1f"|format(proj.user_hours) }}</strong>
+                                    {% endif %}
+                                </td>
+                                <td>{{ approval_badge(proj) }}</td>
+                                <td class="text-end">
+                                    {% if proj.can_edit %}
+                                    <a href="{{ url_for('projects.edit_project', proj_id=proj.id) }}"
+                                        class="btn btn-sm btn-outline-primary" title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('projects.delete_project', proj_id=proj.id) }}"
+                                        method="post" class="d-inline"
+                                        onsubmit="return confirm('Bạn có chắc muốn xóa đề tài này?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <a href="{{ url_for('projects.view_project', proj_id=proj.id) }}"
+                                        class="btn btn-sm btn-outline-secondary" title="Xem">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            {% set ns = namespace(total_per_year=0) %}
+                            {% for proj in projects %}
+                                {% if proj.status == 'extended' %}
+                                {% elif proj.end_year != proj.start_year %}
+                                    {% set ns.total_per_year = ns.total_per_year + proj.user_hours_per_year %}
+                                {% else %}
+                                    {% set ns.total_per_year = ns.total_per_year + proj.user_hours %}
+                                {% endif %}
+                            {% endfor %}
+                            <tr class="table-light">
+                                <td colspan="6" class="text-end"><strong>Tổng cộng:</strong></td>
+                                <td class="text-end">
+                                    <strong>{{ "%.1f"|format(ns.total_per_year) }}</strong>
+                                </td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center my-4">
+                    Chưa có đề tài nào.
+                    <a href="{{ url_for('projects.add_project') }}">Thêm đề tài đầu tiên</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

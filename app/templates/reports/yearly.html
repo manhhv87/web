@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}Báo cáo năm {{ year }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .rpt-table th, .rpt-table td {
+        padding: 10px 16px !important;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border-radius: 0;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff !important;
+        font-weight: 600;
+        padding: 14px 20px;
+        border-radius: 0 !important;
+    }
+
+    .card-header .badge.bg-primary {
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .card-header .badge.bg-warning {
+        background: #ffc107 !important;
+    }
+</style>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3><i class="bi bi-calendar3 me-2"></i>Báo cáo năm {{ year }}</h3>
+            <div>
+                <a href="{{ url_for('reports.export_csv', year=year) }}" class="btn btn-success btn-sm">
+                    <i class="bi bi-download me-1"></i>Xuất CSV
+                </a>
+                <a href="{{ url_for('reports.export_summary_txt', year=year) }}" class="btn btn-info btn-sm">
+                    <i class="bi bi-download me-1"></i>Xuất TXT
+                </a>
+                <a href="{{ url_for('reports.report_index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Ấn phẩm khoa học</h6>
+                <div class="stat-value">{{ summary.total_publications }}</div>
+                <small class="text-muted">{{ "%.1f"|format(summary.total_author_hours) }} giờ</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Đề tài/Dự án</h6>
+                <div class="stat-value">{{ projects|length }}</div>
+                <small class="text-muted">{{ "%.1f"|format(project_total_hours) }} giờ</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Hoạt động KHCN khác</h6>
+                <div class="stat-value">{{ activities|length }}</div>
+                <small class="text-muted">
+                    {{ "%.1f"|format(activity_summary.capped_hours) }} giờ
+                    {% if activity_summary.is_capped %}
+                    <i class="bi bi-exclamation-triangle text-warning" title="Đã giới hạn {{ max_activity_hours }} giờ/năm"></i>
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <h6>TỔNG GIỜ NGHIÊN CỨU</h6>
+                <div class="display-4">{{ "%.1f"|format(grand_total) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Quartile breakdown -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">Phân bố WoS/Scopus</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <td><span class="badge bg-success">Q1</span></td>
+                        <td class="text-end">{{ summary.by_quartile.Q1 }} bài</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-primary">Q2</span></td>
+                        <td class="text-end">{{ summary.by_quartile.Q2 }} bài</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-warning">Q3</span></td>
+                        <td class="text-end">{{ summary.by_quartile.Q3 }} bài</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-secondary">Q4</span></td>
+                        <td class="text-end">{{ summary.by_quartile.Q4 }} bài</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type breakdown -->
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header">Thống kê theo loại ấn phẩm</div>
+            <div class="card-body">
+                {% if summary.by_type %}
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Loại</th>
+                            <th class="text-end">Số lượng</th>
+                            <th class="text-end">Giờ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pub_type, data in summary.by_type.items() %}
+                        <tr>
+                            <td>{{ pub_type_display.get(pub_type, pub_type) }}</td>
+                            <td class="text-end">{{ data.count }}</td>
+                            <td class="text-end">{{ "%.1f"|format(data.hours) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">Không có dữ liệu</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Publication list -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-journal-text me-2"></i>Bảng 1: Ấn phẩm khoa học năm {{ year }}
+        <span class="badge bg-primary ms-2">{{ "%.1f"|format(summary.total_author_hours) }} giờ</span>
+    </div>
+    <div class="card-body">
+        {% if publications %}
+        <div class="table-responsive">
+            <table class="table table-hover rpt-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">STT</th>
+                        <th>Tên ấn phẩm</th>
+                        <th>Loại</th>
+                        <th>Vai trò</th>
+                        <th class="text-end">Giờ cơ bản</th>
+                        <th class="text-end">Giờ tác giả</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pub in publications %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('publications.view_publication', pub_id=pub.id) }}">
+                                {{ pub.title[:60] }}{% if pub.title|length > 60 %}...{% endif %}
+                            </a>
+                            {% if pub.quartile %}
+                            <span
+                                class="badge bg-{% if pub.quartile == 'Q1' %}success{% elif pub.quartile == 'Q2' %}primary{% elif pub.quartile == 'Q3' %}warning{% else %}secondary{% endif %}">
+                                {{ pub.quartile }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ pub.publication_type_display }}</small></td>
+                        <td><small>{{ pub.author_role_display }}</small></td>
+                        <td class="text-end">{{ "%.1f"|format(pub.base_hours) }}</td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(pub.author_hours) }}</strong></td>
+                        <td>
+                            {% if pub.approval_status == 'approved' %}
+                            <span class="badge bg-success">Đã duyệt</span>
+                            {% elif pub.approval_status == 'draft' %}
+                            <span class="badge bg-secondary">Nháp</span>
+                            {% elif pub.approval_status == 'returned' %}
+                            <span class="badge bg-danger">Trả lại</span>
+                            {% elif pub.approval_status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Chờ duyệt</span>
+                            {% elif pub.approval_status == 'department_approved' %}
+                            <span class="badge bg-info text-dark">Bộ môn duyệt</span>
+                            {% elif pub.approval_status == 'faculty_approved' %}
+                            <span class="badge bg-primary">Khoa duyệt</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ pub.approval_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <td colspan="4" class="text-end"><strong>Tổng cộng:</strong></td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(summary.total_base_hours) }}</strong></td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(summary.total_author_hours) }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">Không có ấn phẩm nào trong năm {{ year }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Projects list -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-folder me-2"></i>Bảng 2 (Mục 1-2): Đề tài/Dự án năm {{ year }}
+        <span class="badge bg-primary ms-2">{{ "%.1f"|format(project_total_hours) }} giờ</span>
+    </div>
+    <div class="card-body">
+        {% if projects %}
+        <div class="table-responsive">
+            <table class="table table-hover rpt-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">STT</th>
+                        <th>Tên đề tài</th>
+                        <th>Cấp</th>
+                        <th>Vai trò</th>
+                        <th>Thời gian</th>
+                        <th class="text-end">Giờ</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proj in projects %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('projects.view_project', proj_id=proj.id) }}">
+                                {{ proj.title[:60] }}{% if proj.title|length > 60 %}...{% endif %}
+                            </a>
+                            {% if proj.project_code %}
+                            <br><small class="text-muted">{{ proj.project_code }}</small>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ proj.project_level_display }}</small></td>
+                        <td><small>{{ proj.role_display }}</small></td>
+                        <td><small>{{ proj.start_year }}-{{ proj.end_year }}</small></td>
+                        <td class="text-end">
+                            <strong>{{ "%.1f"|format(proj.calc_user_hours_per_year) }}</strong>
+                            {% if proj.end_year != proj.start_year %}
+                            <br><small class="text-muted" title="Tổng {{ "%.1f"|format(proj.calc_user_hours) }} giờ ÷ {{ proj.end_year - proj.start_year + 1 }} năm">÷{{ proj.end_year - proj.start_year + 1 }}năm</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if proj.approval_status == 'approved' %}
+                            <span class="badge bg-success">Đã duyệt</span>
+                            {% elif proj.approval_status == 'draft' %}
+                            <span class="badge bg-secondary">Nháp</span>
+                            {% elif proj.approval_status == 'returned' %}
+                            <span class="badge bg-danger">Trả lại</span>
+                            {% elif proj.approval_status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Chờ duyệt</span>
+                            {% elif proj.approval_status == 'department_approved' %}
+                            <span class="badge bg-info text-dark">Bộ môn duyệt</span>
+                            {% elif proj.approval_status == 'faculty_approved' %}
+                            <span class="badge bg-primary">Khoa duyệt</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ proj.approval_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <td colspan="5" class="text-end"><strong>Tổng cộng:</strong></td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(project_total_hours) }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">Không có đề tài/dự án nào trong năm {{ year }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Other activities list -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-activity me-2"></i>Bảng 2 (Mục 3): Hoạt động KHCN khác năm {{ year }}
+        <span class="badge bg-primary ms-2">{{ "%.1f"|format(activity_summary.capped_hours) }} giờ</span>
+        {% if activity_summary.is_capped %}
+        <span class="badge bg-warning text-dark ms-1">
+            <i class="bi bi-exclamation-triangle me-1"></i>Đã giới hạn {{ max_activity_hours }}h/năm
+        </span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if activities %}
+        <div class="table-responsive">
+            <table class="table table-hover rpt-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">STT</th>
+                        <th>Tên hoạt động</th>
+                        <th>Loại</th>
+                        <th class="text-end">Số lượng</th>
+                        <th class="text-end">Giờ</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in activities %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('activities.view_activity', act_id=act.id) }}">
+                                {% if act.title %}
+                                {{ act.title[:60] }}{% if act.title|length > 60 %}...{% endif %}
+                                {% else %}
+                                {{ act.activity_type_display }}
+                                {% endif %}
+                            </a>
+                            {% if act.event_name %}
+                            <br><small class="text-muted">{{ act.event_name }}</small>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ act.activity_type_display }}</small></td>
+                        <td class="text-end">{{ act.quantity }}</td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(act.hours) }}</strong></td>
+                        <td>
+                            {% if act.approval_status == 'approved' %}
+                            <span class="badge bg-success">Đã duyệt</span>
+                            {% elif act.approval_status == 'draft' %}
+                            <span class="badge bg-secondary">Nháp</span>
+                            {% elif act.approval_status == 'returned' %}
+                            <span class="badge bg-danger">Trả lại</span>
+                            {% elif act.approval_status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Chờ duyệt</span>
+                            {% elif act.approval_status == 'department_approved' %}
+                            <span class="badge bg-info text-dark">Bộ môn duyệt</span>
+                            {% elif act.approval_status == 'faculty_approved' %}
+                            <span class="badge bg-primary">Khoa duyệt</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ act.approval_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <td colspan="4" class="text-end">
+                            <strong>Tổng cộng:</strong>
+                            {% if activity_summary.is_capped %}
+                            <small class="text-muted">(trước giới hạn: {{ "%.1f"|format(activity_summary.total_raw_hours) }})</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(activity_summary.capped_hours) }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center my-4">Không có hoạt động KHCN khác trong năm {{ year }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Chi tiết vai trò Admin - {{ user.full_name }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.list_admins') }}">Quản lý Admin</a></li>
+                <li class="breadcrumb-item active">{{ user.full_name }}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-person-badge me-2"></i>Chi tiết vai trò Admin</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <!-- Thông tin người dùng -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-person me-2"></i>Thông tin người dùng
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Họ tên:</strong> {{ user.full_name }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Mã cán bộ:</strong> {{ user.employee_id or '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Đơn vị:</strong> {{ user.full_organization_name or '-' }}</p>
+                        <p><strong>Cấp cao nhất:</strong>
+                            {% if user.highest_admin_level == 'university' %}
+                            <span class="badge bg-danger">Admin Trường (PKHCN)</span>
+                            {% elif user.highest_admin_level == 'faculty' %}
+                            <span class="badge bg-warning text-dark">Admin Khoa</span>
+                            {% elif user.highest_admin_level == 'department' %}
+                            <span class="badge bg-info">Admin Bộ môn</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Người dùng</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách vai trò -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-shield-shaded me-2"></i>Các vai trò Admin</span>
+                {% if can_manage %}
+                <a href="{{ url_for('admin.add_admin') }}?user_id={{ user.id }}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>Thêm vai trò
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if roles %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Vai trò</th>
+                                <th>Phạm vi</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày gán</th>
+                                <th>Người gán</th>
+                                {% if can_manage %}
+                                <th>Hành động</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in roles %}
+                            <tr class="{{ 'table-secondary' if not role.is_active else '' }}">
+                                <td>
+                                    {% if role.role_level == 'university' %}
+                                    <span class="badge bg-danger">Admin Trường</span>
+                                    {% elif role.role_level == 'faculty' %}
+                                    <span class="badge bg-warning text-dark">Admin Khoa</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Admin Bộ môn</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ role.scope_display }}</td>
+                                <td>
+                                    {% if role.is_active %}
+                                    <span class="badge bg-success">Hoạt động</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Đã vô hiệu</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ role.assigned_at.strftime('%d/%m/%Y %H:%M') if role.assigned_at else '-' }}</td>
+                                <td>{{ role.assigner.full_name if role.assigner else '-' }}</td>
+                                {% if can_manage %}
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if role.role_level in assignable_levels %}
+                                        {% set lock_reason = role_lock_reasons.get(role.id) %}
+                                        {% set is_locked = lock_reason is not none %}
+                                        {% set disable_reason = lock_reason or '' %}
+                                        {% set delete_reason = lock_reason or '' %}
+                                        <form action="{{ url_for('admin.toggle_admin_role', role_id=role.id) }}" method="post"
+                                            class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            {% if is_locked %}
+                                            <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip"
+                                                  title="{{ disable_reason }}">
+                                                <button type="button"
+                                                    class="btn btn-outline-{{ 'warning' if role.is_active else 'success' }}"
+                                                    disabled>
+                                                    <i class="bi bi-{{ 'pause' if role.is_active else 'play' }}"></i>
+                                                </button>
+                                            </span>
+                                            {% else %}
+                                            <button type="submit"
+                                                class="btn btn-outline-{{ 'warning' if role.is_active else 'success' }}"
+                                                title="{{ 'Vô hiệu hóa' if role.is_active else 'Kích hoạt' }}">
+                                                <i class="bi bi-{{ 'pause' if role.is_active else 'play' }}"></i>
+                                            </button>
+                                            {% endif %}
+                                        </form>
+                                        <form action="{{ url_for('admin.delete_admin_role', role_id=role.id) }}" method="post"
+                                            class="d-inline"
+                                            onsubmit="return confirm('Bạn có chắc chắn muốn xóa vai trò này?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            {% if is_locked %}
+                                            <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip"
+                                                  title="{{ delete_reason }}">
+                                                <button type="button" class="btn btn-outline-danger" disabled>
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </span>
+                                            {% else %}
+                                            <button type="submit" class="btn btn-outline-danger" title="Xóa vai trò">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </form>
+                                        {% else %}
+                                        <button type="button" class="btn btn-outline-secondary" disabled
+                                            title="Bạn không có quyền thay đổi vai trò này">
+                                            <i class="bi bi-lock"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Người dùng này chưa được gán vai trò admin nào thông qua hệ thống mới.
+                    {% if user.admin_level and user.admin_level != 'none' %}
+                    <br>
+                    <small class="text-muted">
+                        Hiện đang có quyền {{ user.admin_level_display }} từ hệ thống cũ (cột admin_level).
+                    </small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Lịch sử thay đổi quyền -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history me-2"></i>Lịch sử thay đổi quyền
+            </div>
+            <div class="card-body">
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Hành động</th>
+                                <th>Quyền cũ</th>
+                                <th>Quyền mới</th>
+                                <th>Người thực hiện</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.performed_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    {% if log.action == 'grant' %}
+                                    <span class="badge bg-success">Cấp quyền</span>
+                                    {% elif log.action == 'revoke' %}
+                                    <span class="badge bg-danger">Thu hồi</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Thay đổi</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.old_level or '-' }}</td>
+                                <td>{{ log.new_level or '-' }}</td>
+                                <td>{{ log.performer.full_name if log.performer else '-' }}</td>
+                                <td>{{ log.notes or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Chưa có lịch sử thay đổi quyền.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Thông tin
+            </div>
+            <div class="card-body">
+                <h6>Về việc nhiều vai trò:</h6>
+                <p class="small text-muted">
+                    Một người có thể được gán nhiều vai trò admin cùng lúc. Ví dụ:
+                </p>
+                <ul class="small text-muted">
+                    <li>Admin Trường + Admin Khoa CNTT</li>
+                    <li>Admin Khoa CNTT + Admin BM CNPM</li>
+                </ul>
+                <hr>
+                <h6>Quyền hạn:</h6>
+                <p class="small text-muted mb-0">
+                    Quyền hạn được tính theo vai trò cao nhất. Nếu có nhiều vai trò cùng cấp (VD: Admin 2 Khoa),
+                    người dùng có quyền quản lý cả 2 phạm vi đó.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <a href="{{ url_for('admin.list_admins') }}" class="btn btn-secondary w-100">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

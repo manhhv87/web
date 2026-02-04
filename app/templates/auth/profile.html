@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Thông tin cá nhân - {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-banner {
+        background: linear-gradient(135deg, var(--vnu-blue) 0%, #004d99 60%, #0066cc 100%);
+        padding: 2.5rem 0 4rem;
+        color: #fff;
+        position: relative;
+    }
+    .profile-avatar-wrapper {
+        margin-top: -3.5rem;
+        position: relative;
+        z-index: 2;
+    }
+    .profile-avatar-lg {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 2.2rem;
+        color: #fff;
+        border: 4px solid #fff;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    .profile-avatar-lg img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .avatar-upload-area {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+    }
+    .avatar-upload-area .avatar-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 36px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+        border-radius: 0 0 50px 50px;
+    }
+    .avatar-upload-area:hover .avatar-overlay {
+        opacity: 1;
+    }
+    .avatar-upload-area input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .profile-info-card {
+        border: none;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+        border-radius: 0.5rem;
+    }
+    .profile-info-card .info-row {
+        padding: 0.65rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .profile-info-card .info-row:last-child {
+        border-bottom: none;
+    }
+    .profile-info-card .info-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.15rem;
+    }
+    .profile-info-card .info-value {
+        font-size: 0.95rem;
+        color: #212529;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set _initials = current_user.full_name.split()|map('first')|list %}
+{% set avatar_initials = (_initials[0] ~ _initials[-1])|upper if _initials|length > 1 else (_initials[0]|upper if _initials else '?') %}
+{% set _name_hash = current_user.full_name|length * 37 + (current_user.id or 0) * 13 %}
+{% set avatar_colors = ['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626','#0891b2','#4f46e5'] %}
+{% set avatar_bg = avatar_colors[_name_hash % avatar_colors|length] %}
+
+<!-- Banner -->
+<div class="profile-banner">
+    <div class="container text-center">
+        <h4 class="mb-0 fw-light">Thông tin cá nhân</h4>
+    </div>
+</div>
+
+<div class="container" style="max-width: 820px;">
+    <!-- Avatar + Name -->
+    <div class="text-center profile-avatar-wrapper mb-3">
+        <form id="avatarForm" method="post" enctype="multipart/form-data" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="upload_avatar">
+            <div class="avatar-upload-area mx-auto" title="Thay ảnh đại diện">
+                <div class="profile-avatar-lg" style="background:{{ avatar_bg }};">
+                    {% if current_user.avatar_filename %}
+                    <img src="{{ url_for('static', filename='avatars/' ~ current_user.avatar_filename) }}" alt="Avatar">
+                    {% else %}
+                    {{ avatar_initials }}
+                    {% endif %}
+                </div>
+                <div class="avatar-overlay"><i class="bi bi-camera me-1"></i>Thay ảnh</div>
+                <input type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp"
+                       onchange="document.getElementById('avatarPreview').src=URL.createObjectURL(this.files[0]);
+                                 document.getElementById('avatarPreview').parentElement.querySelector('span')?.remove();
+                                 document.getElementById('avatarPreview').style.display='block';
+                                 document.getElementById('avatarActions').style.display='flex';">
+            </div>
+        </form>
+        <div id="avatarActions" class="mt-2 gap-2 justify-content-center" style="display:none;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('profileForm').querySelector('[name=action]').value='update_profile'; submitAvatarWithProfile();">
+                <i class="bi bi-check-lg me-1"></i>Lưu ảnh
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="location.reload();">Hủy</button>
+        </div>
+        {% if current_user.avatar_filename %}
+        <div class="mt-2">
+            <form method="post" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="remove_avatar">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash me-1"></i>Xóa ảnh
+                </button>
+            </form>
+        </div>
+        {% endif %}
+        <img id="avatarPreview" src="" alt="" style="display:none; width:0; height:0;">
+        <h5 class="mt-2 mb-0">{{ current_user.full_name }}</h5>
+        <div class="text-muted small">{{ current_user.email }}</div>
+        {% if current_user.is_admin %}
+        <span class="badge bg-primary mt-1"><i class="bi bi-shield-check me-1"></i>Admin</span>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <!-- Left: Info summary card -->
+        <div class="col-md-5">
+            <div class="card profile-info-card">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Thông tin hiện tại</h6>
+                    <div class="info-row">
+                        <div class="info-label">Họ và tên</div>
+                        <div class="info-value">{{ current_user.full_name }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ current_user.email }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Khoa/Phòng ban</div>
+                        <div class="info-value">{{ current_user.organization_unit_name or '—' }}</div>
+                    </div>
+                    {% if current_user.division_name %}
+                    <div class="info-row">
+                        <div class="info-label">Bộ môn</div>
+                        <div class="info-value">{{ current_user.division_name }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <div class="info-label">Mã cán bộ</div>
+                        <div class="info-value">{{ current_user.employee_id or '—' }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Ngày tham gia</div>
+                        <div class="info-value">{{ current_user.created_at.strftime('%d/%m/%Y') if current_user.created_at else '—' }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="bi bi-key me-1"></i>Đổi mật khẩu
+                </a>
+            </div>
+        </div>
+
+        <!-- Right: Edit form -->
+        <div class="col-md-7">
+            <div class="card profile-info-card">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Chỉnh sửa thông tin</h6>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="update_profile">
+                        <input type="file" name="avatar" id="profileAvatarInput" style="display:none;" accept="image/jpeg,image/png,image/gif,image/webp">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+                            <small class="text-muted">Email không thể thay đổi</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" name="full_name" class="form-control" required
+                                value="{{ current_user.full_name }}">
+                        </div>
+
+                        <!-- Khoa/Phòng ban -->
+                        <div class="mb-3">
+                            <label class="form-label">Khoa/Phòng ban <span class="text-danger">*</span></label>
+                            <select name="organization_unit_id" id="organizationUnitSelect" class="form-select" required>
+                                <option value="">-- Chọn Khoa/Phòng ban --</option>
+                                {% if org_units %}
+                                    <optgroup label="Khoa">
+                                        {% for unit in org_units if unit.unit_type == 'faculty' %}
+                                        <option value="{{ unit.id }}"
+                                                data-unit-type="{{ unit.unit_type }}"
+                                                data-requires-division="{{ 'true' if unit.requires_division else 'false' }}"
+                                                {% if current_user.organization_unit_id == unit.id %}selected{% endif %}>
+                                            {{ unit.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    <optgroup label="Phòng ban">
+                                        {% for unit in org_units if unit.unit_type == 'office' %}
+                                        <option value="{{ unit.id }}"
+                                                data-unit-type="{{ unit.unit_type }}"
+                                                data-requires-division="false"
+                                                {% if current_user.organization_unit_id == unit.id %}selected{% endif %}>
+                                            {{ unit.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <!-- Bộ môn -->
+                        <div class="mb-3" id="divisionField" style="display: none;">
+                            <label class="form-label">Bộ môn <span class="text-danger" id="divisionRequired">*</span></label>
+                            <div class="d-flex align-items-center gap-2">
+                                <select name="division_id" id="divisionSelect" class="form-select">
+                                    <option value="">-- Chọn Bộ môn --</option>
+                                </select>
+                                <div id="divisionSpinner" class="spinner-border text-secondary" role="status" style="width:1.25rem; height:1.25rem; display:none;">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Mã cán bộ</label>
+                            <input type="text" name="employee_id" class="form-control"
+                                value="{{ current_user.employee_id or '' }}">
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>Lưu thay đổi
+                            </button>
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const orgUnitSelect = document.getElementById('organizationUnitSelect');
+    const divisionField = document.getElementById('divisionField');
+    const divisionSelect = document.getElementById('divisionSelect');
+    const divisionRequired = document.getElementById('divisionRequired');
+
+    async function loadDivisions(orgUnitId) {
+        if (!orgUnitId) {
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+            return;
+        }
+
+        const divisionSpinner = document.getElementById('divisionSpinner');
+        const submitBtn = document.querySelector('form button[type="submit"]');
+        divisionSpinner.style.display = 'inline-block';
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/organization-units/${orgUnitId}/divisions`);
+            const divisions = await response.json();
+
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+            divisions.forEach(div => {
+                const option = document.createElement('option');
+                option.value = div.id;
+                option.textContent = div.name;
+                {% if current_user.division_id %}
+                if (div.id === {{ current_user.division_id }}) {
+                    option.selected = true;
+                }
+                {% endif %}
+                divisionSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading divisions:', error);
+        } finally {
+            divisionSpinner.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    function updateDivisionField() {
+        const selectedOption = orgUnitSelect.options[orgUnitSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            divisionField.style.display = 'none';
+            divisionSelect.required = false;
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+            return;
+        }
+
+        const unitType = selectedOption.getAttribute('data-unit-type');
+
+        if (unitType === 'faculty') {
+            divisionField.style.display = 'block';
+            divisionSelect.required = true;
+            divisionRequired.style.display = 'inline';
+            loadDivisions(selectedOption.value);
+        } else {
+            divisionField.style.display = 'none';
+            divisionSelect.required = false;
+            divisionRequired.style.display = 'none';
+            divisionSelect.innerHTML = '<option value="">-- Chọn Bộ môn --</option>';
+        }
+    }
+
+    orgUnitSelect.addEventListener('change', updateDivisionField);
+    updateDivisionField();
+
+    // Sync avatar file from overlay form to the profile form and submit
+    window.submitAvatarWithProfile = function() {
+        const avatarForm = document.getElementById('avatarForm');
+        const profileForm = document.getElementById('profileForm');
+        const fileInput = avatarForm.querySelector('input[type="file"]');
+        if (fileInput.files.length > 0) {
+            const dt = new DataTransfer();
+            dt.items.add(fileInput.files[0]);
+            document.getElementById('profileAvatarInput').files = dt.files;
+        }
+        profileForm.submit();
+    };
+});
+</script>
+{% endblock %}

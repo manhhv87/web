@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Cài đặt Admin - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-lock me-2"></i>Cài đặt tài khoản Admin
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Đây là lần đầu tiên sử dụng hệ thống. Vui lòng tạo tài khoản Admin để quản lý.
+                </div>
+
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" required placeholder="admin@example.com"
+                            value="{{ request.form.get('email', '') }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required minlength="6"
+                            placeholder="Ít nhất 6 ký tự">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="confirm_password" class="form-control" required minlength="6"
+                            placeholder="Nhập lại mật khẩu">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                        <input type="text" name="full_name" class="form-control" required placeholder="Nguyen Van Admin"
+                            value="{{ request.form.get('full_name', '') }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Đơn vị</label>
+                        <input type="text" name="department" class="form-control" placeholder="Khoa/Phòng (tùy chọn)"
+                            value="{{ request.form.get('department', '') }}">
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="bi bi-shield-check me-2"></i>Tạo tài khoản Admin
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="bi bi-question-circle me-2"></i>Tài khoản Admin có thể:</h6>
+                <ul class="mb-0">
+                    <li>Quản lý tất cả người dùng trong hệ thống</li>
+                    <li>Duyệt/từ chối các hoạt động nghiên cứu</li>
+                    <li>Xem báo cáo tổng hợp của toàn Khoa</li>
+                    <li>Chỉnh sửa, xóa bất kỳ dữ liệu nào</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
