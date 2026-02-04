@@ -861,7 +861,8 @@ class User(UserMixin, db.Model):
 
         # Admin cấp Trường không bắt buộc thuộc đơn vị nào
         if not self.organization_unit_id:
-            if self.highest_admin_level == "university":
+            # Allow university admin even before AdminRole is attached (legacy admin_level cache)
+            if self.highest_admin_level == "university" or self.admin_level == "university":
                 return
             raise ValueError("Vui lòng chọn Khoa/Phòng ban (organization_unit_id).")
 
